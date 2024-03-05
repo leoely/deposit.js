@@ -1,9 +1,10 @@
 # records.js
+
 The javascript database cache libary.
 
 ## Features
 
-- Read distribution easyly.
+- Read distribution easily.
 - No more sql.
 - Low coupling.
 - No progress communication.
