@@ -1,5 +1,5 @@
 {
-  "name": "storage.js",
+  "name": "deposit.js",
   "version": "0.0.1",
   "description": "The javascript database cache libray.",
   "main": "./dist/class/Table.js",
