@@ -6,7 +6,7 @@ services:
     environment:
       MYSQL_HOST: localhost
       MYSQL_ROOT_PASSWORD: password
-      MYSQL_DATABASE: recordsjs
+      MYSQL_DATABASE: depositjs
     ports:
       - 3306:3306
     volumes:
@@ -17,7 +17,7 @@ services:
     environment:
       POSTGRES_USER: root
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: recordsjs
+      POSTGRES_DB: depositjs
     ports:
       - 5432:5432
     volumes:

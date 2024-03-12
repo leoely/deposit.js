@@ -4,7 +4,7 @@ const client = new Pool({
   host: 'localhost',
   user: 'root',
   password: 'password',
-  database: 'recordsjs',
+  database: 'depositjs',
 });
 
 const options = {
