@@ -651,10 +651,11 @@ class Table {
           }
         }
       } else {
-        if (k !== '*rest' && source[hash[set[k][0]].pointer] === undefined) {
-          const p = hash[set[k][0]].pointer;
+        const i = set[k][0];
+        if (k !== '*rest' && source[hash[i].pointer] === undefined) {
+          const p = hash[i].pointer;
           const { sections: s, jumps: j, chaotic, } = this.hash[p];
-          hash[set[k][0]] = {
+          hash[i] = {
             type: 's',
             jumps: j.slice(0, j.length),
             sections: s.slice(0, s.length),
@@ -663,18 +664,18 @@ class Table {
           for (let j = 1; j < set[k].length; j += 1) {
             hash[set[k][j]] = {
               type: 'p',
-              pointer: set[k][0],
+              pointer: i,
             };
           }
-          const sections = this.calcSections(section, datas, set[k][0]);
-          await this.cacheSections(sections, datas, set[k][0]);
+          const sections = this.calcSections(section, datas, i);
+          await this.cacheSections(sections, datas, i);
           for (let j =0; j < set[k].length; j += 1) {
             const f = set[k][j];
             await this.cacheSections(sections, datas, f);
           }
         } else {
           if (k !== '*rest') {
-            const s = this.hash[set[k][0]].pointer;
+            const s = this.hash[i].pointer;
             const sections = this.calcSections(section, datas, s);
             await this.cacheSections(sections, datas, s);
             for (let j = 0; j < set[k].length; j += 1) {
