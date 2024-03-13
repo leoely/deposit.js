@@ -725,7 +725,8 @@ class Table {
     const ans = [];
     let pointer = -1;
     this.concatSections(filter);
-    if (datas[index] !== undefined && datas[index][filter] !== undefined) {
+    let data = datas[index];
+    if (data !== undefined && data[filter] !== undefined) {
       const l = getLength([0, index]);
       const {
         average: {
@@ -747,7 +748,7 @@ class Table {
         }
       }
     }
-    if (datas[index] === undefined || datas[index][filter] === undefined) {
+    if (data === undefined || data[filter] === undefined) {
       const i = index;
       const l = getLength([0, index]);
       const {
@@ -759,8 +760,10 @@ class Table {
       if (multily >= 2.8 && l / multily >= 28) {
         const { jumps, } = this.hash[filter];
         while (index >= 0) {
-          if (jumps[index] !== undefined && (datas[index - 1] !== undefined && datas[index - 1][filter] !== undefined)) {
-            const [j, i] = jumps[index];
+          const d = datas[index - 1];
+          const jump = jumps[index];
+          if (jump !== undefined && (d !== undefined && d[filter] !== undefined)) {
+            const [j, i] = jump;
             pointer = i;
             break;
           } else {
@@ -771,7 +774,8 @@ class Table {
       }
     }
     while (index <= right) {
-      if (datas[index] === undefined || datas[index][filter] === undefined) {
+      const data = datas[index];
+      if (data === undefined || data[filter] === undefined) {
         let { jumps, sections, } = this.hash[filter];
         if (sections.length === 0) {
           sections.push(section);
@@ -782,8 +786,10 @@ class Table {
           return ans;
         }
         this.concatSections(filter);
-        if (jumps[index] !== undefined && (datas[index - 1] && datas[index - 1][filter] !== undefined)) {
-          const [j, p] = jumps[index];
+        const d = datas[index - 1];
+        const jump = jumps[index];
+        if (jump !== undefined && (d && d[filter] !== undefined)) {
+          const [j, p] = jump;
           index = j + 1;
           pointer = p;
         }
