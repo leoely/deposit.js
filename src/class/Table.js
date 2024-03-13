@@ -737,7 +737,8 @@ class Table {
       if (multily >= 2.8 && l / multily >= 28) {
         const { jumps, } = this.hash[filter];
         while (true) {
-          if (jumps[index] !== undefined && (datas[index - 1] === undefined || datas[index - 1][filter] === undefined)) {
+          const data = datas[index - 1];
+          if (jumps[index] !== undefined && (data === undefined || data[filter] === undefined)) {
             const [j, i] = jumps[index];
             index = j;
             pointer = i;
