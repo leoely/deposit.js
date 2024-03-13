@@ -30,8 +30,9 @@ function deepCopyRecord(l, r, o, ans, datas, filters) {
 }
 
 function generateBareJump(sections, i, jumps) {
-  if (sections[i - 1] !== undefined) {
-    const [l1, r1] = sections[i - 1];
+  const section = sections[i - 1];
+  if (section !== undefined) {
+    const [l1, r1] = section;
     const [l2] = sections[i];
     jumps[r1 + 1] = [l2 - 1, i - 1];
   }
