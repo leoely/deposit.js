@@ -617,8 +617,9 @@ class Table {
           await this.cacheSections(sections, datas, f);
         }
       } else if (k === '*rest') {
+        const s = set[k];
         const h = {};
-        set[k].forEach((e) => {
+        s.forEach((e) => {
           h[e] = true;
         });
         const lists = {};
@@ -633,8 +634,8 @@ class Table {
             lists[p].push(e);
           }
         });
-        for (let j = 0; j < set[k].length; j += 1) {
-          const f = set[k][j];
+        for (let j = 0; j < s.length; j += 1) {
+          const f = s[j];
           if (set[f] === undefined) {
             const list = lists[f];
             if (Array.isArray(list)) {
