@@ -596,23 +596,24 @@ class Table {
     const { hash, } = this;
     for (let i = 0; i < keys.length; i += 1) {
       const k = keys[i];
+      const s = set[k];
       if (k === '*null') {
-        const i = set[k][0];
+        const i = s[0];
         hash[i] = {
           type: 's',
           jumps: [],
           sections: [],
           chaotic: false,
         };
-        for (let j = 1; j < set[k].length; j += 1) {
-          hash[set[k][j]] = {
+        for (let j = 1; j < s.length; j += 1) {
+          hash[s[j]] = {
             type: 'p',
             pointer: i,
           };
         }
         const sections = this.calcSections(section, datas, set[k][0]);
-        for (let j = 0; j < set[k].length; j += 1) {
-          const f = set[k][j];
+        for (let j = 0; j < s.length; j += 1) {
+          const f = s[j];
           await this.cacheSections(sections, datas, f);
         }
       } else if (k === '*rest') {
