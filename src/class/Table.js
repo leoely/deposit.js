@@ -83,8 +83,9 @@ function radixSort(list) {
     }
     const newList = [];
     for (let i = 0; i < bucket.length; i += 1) {
-      if (Array.isArray(bucket[9 - i])) {
-        bucket[9 - i].forEach((e) => {
+      const b = bucket[9 - i];
+      if (Array.isArray(b)) {
+        b.forEach((e) => {
           newList.unshift(list[e]);
         });
       }
@@ -93,8 +94,9 @@ function radixSort(list) {
   }
   const ans = [];
   for (let i = 0; i < bucket.length; i += 1) {
-    if (Array.isArray(bucket[9 - i])) {
-      bucket[9 - i].forEach((e) => {
+    const b = bucket[9 - i];
+    if (Array.isArray(b)) {
+      b.forEach((e) => {
         ans.unshift(list[e][1]);
       });
     }
