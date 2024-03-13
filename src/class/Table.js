@@ -617,9 +617,9 @@ class Table {
           await this.cacheSections(sections, datas, f);
         }
       } else if (k === '*rest') {
-        const s = set[k];
+        const elem = set[k];
         const h = {};
-        s.forEach((e) => {
+        elem.forEach((e) => {
           h[e] = true;
         });
         const lists = {};
@@ -634,8 +634,8 @@ class Table {
             lists[p].push(e);
           }
         });
-        for (let j = 0; j < s.length; j += 1) {
-          const f = s[j];
+        for (let j = 0; j < elem.length; j += 1) {
+          const f = elem[j];
           if (set[f] === undefined) {
             const list = lists[f];
             if (Array.isArray(list)) {
@@ -659,7 +659,8 @@ class Table {
           }
         }
       } else {
-        const i = set[k][0];
+        const elem = set[k];
+        const i = s[0];
         if (k !== '*rest' && source[hash[i].pointer] === undefined) {
           const p = hash[i].pointer;
           const { sections: s, jumps: j, chaotic, } = this.hash[p];
@@ -669,16 +670,16 @@ class Table {
             sections: s.slice(0, s.length),
             chaotic,
           };
-          for (let j = 1; j < set[k].length; j += 1) {
-            hash[set[k][j]] = {
+          for (let j = 1; j < elem.length; j += 1) {
+            hash[elem[j]] = {
               type: 'p',
               pointer: i,
             };
           }
           const sections = this.calcSections(section, datas, i);
           await this.cacheSections(sections, datas, i);
-          for (let j =0; j < set[k].length; j += 1) {
-            const f = set[k][j];
+          for (let j =0; j < elem.length; j += 1) {
+            const f = elem[j];
             await this.cacheSections(sections, datas, f);
           }
         } else {
@@ -686,7 +687,7 @@ class Table {
             const s = this.hash[i].pointer;
             const sections = this.calcSections(section, datas, s);
             await this.cacheSections(sections, datas, s);
-            for (let j = 0; j < set[k].length; j += 1) {
+            for (let j = 0; j < elem.length; j += 1) {
               const f = set[k][j];
               await this.cacheSections(sections, datas, f);
             }
