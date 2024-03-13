@@ -812,7 +812,8 @@ class Table {
             continue;
           }
           if (i >= sections.length - 1 && sections[i + 1] === undefined) {
-            if (sections[i] === undefined || index > sections[i][1]) {
+            const section = sections[i];
+            if (section === undefined || index > section[1]) {
               pointer = sections.length - 1;
               const section = [index, right];
               ans.push(section);
@@ -839,7 +840,8 @@ class Table {
         }
       } else {
         const { jumps, sections, } = this.hash[filter];
-        if (jumps[index] !== undefined && (datas[index - 1] === undefined || datas[index - 1][filter] === undefined)) {
+        const data = datas[index - 1];
+        if (jumps[index] !== undefined && (data === undefined || data[filter] === undefined)) {
           const [j, p] = jumps[index];
           index = j + 1;
           pointer = p;
