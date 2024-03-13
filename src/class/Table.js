@@ -794,8 +794,8 @@ class Table {
           pointer = p;
         }
         for (let i = pointer; i <= sections.length; i += 1) {
+          const s = sections[i + 1];
           if (i <= -1 && sections[i] === undefined) {
-            const s = sections[i + 1];
             if (s !== undefined) {
               const [l, r] = s;
               if (index < r) {
@@ -811,7 +811,7 @@ class Table {
             }
             continue;
           }
-          if (i >= sections.length - 1 && sections[i + 1] === undefined) {
+          if (i >= sections.length - 1 && s === undefined) {
             const section = sections[i];
             if (section === undefined || index > section[1]) {
               pointer = sections.length - 1;
@@ -824,7 +824,7 @@ class Table {
             return ans;
           }
           const [l1, r1] = sections[i];
-          const [l2, r2] = sections[i + 1];
+          const [l2, r2] = s;
           if (index > r1 && index < l2) {
             pointer = i + 1;
             const section = [index, l2];
