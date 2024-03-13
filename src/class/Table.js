@@ -83,9 +83,9 @@ function radixSort(list) {
     }
     const newList = [];
     for (let i = 0; i < bucket.length; i += 1) {
-      const b = bucket[9 - i];
-      if (Array.isArray(b)) {
-        b.forEach((e) => {
+      const groove = bucket[9 - i];
+      if (Array.isArray(groove)) {
+        groove.forEach((e) => {
           newList.unshift(list[e]);
         });
       }
@@ -94,9 +94,9 @@ function radixSort(list) {
   }
   const ans = [];
   for (let i = 0; i < bucket.length; i += 1) {
-    const b = bucket[9 - i];
-    if (Array.isArray(b)) {
-      b.forEach((e) => {
+    const groove = bucket[9 - i];
+    if (Array.isArray(groove)) {
+      groove.forEach((e) => {
         ans.unshift(list[e][1]);
       });
     }
@@ -361,10 +361,11 @@ class Table {
     const { hash, } = this;
     Object.keys(hash).forEach((k) => {
       if (h[k] === undefined) {
-        if (hash[k].type === 's') {
+        const groove = hash[k];
+        if (groove.type === 's') {
           min[k] = true;
         } else {
-          min[hash[k].pointer] = true;
+          min[groove.pointer] = true;
         }
       }
     });
@@ -568,13 +569,14 @@ class Table {
     const source = {};
     filters.forEach((f, i) => {
       const { hash, } = this;
-      if (hash[f] === undefined) {
+      const groove = hash[f];
+      if (groove === undefined) {
         if (set['*null'] === undefined) {
           set['*null'] = [];
         }
         set['*null'].push(f);
-      } else if (hash[f].type === 'p') {
-        const pointer = hash[f].pointer;
+      } else if (groove.type === 'p') {
+        const pointer = groove.pointer;
         if (set[pointer] === undefined) {
           set[pointer] = [];
         }
@@ -585,7 +587,7 @@ class Table {
         }
         set['*rest'].push(f);
       }
-      const obj = hash[f];
+      const obj = groove;
       if (obj && obj.type === 's') {
         source[f] = true;
       }
