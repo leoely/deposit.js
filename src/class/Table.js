@@ -532,7 +532,7 @@ class Table {
         this.datas[l] = record;
         const { hash, } = this;
         let first;
-        Object.keys(records[0]).forEach((k, i) => {
+        Object.keys(record).forEach((k, i) => {
           const o = hash[k];
           if (o !== undefined && o.type === 's') {
             const { sections, } = o;
@@ -592,7 +592,8 @@ class Table {
     for (let i = 0; i < keys.length; i += 1) {
       const k = keys[i];
       if (k === '*null') {
-        hash[set[k][0]] = {
+        const i = set[k][0];
+        hash[i] = {
           type: 's',
           jumps: [],
           sections: [],
@@ -601,7 +602,7 @@ class Table {
         for (let j = 1; j < set[k].length; j += 1) {
           hash[set[k][j]] = {
             type: 'p',
-            pointer: set[k][0],
+            pointer: i,
           };
         }
         const sections = this.calcSections(section, datas, set[k][0]);
