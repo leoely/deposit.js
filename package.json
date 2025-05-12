@@ -1,6 +1,6 @@
 {
   "name": "deposit.js",
-  "version": "0.0.2",
+  "version": "1.0.0",
   "description": "The javascript database cache libray.",
   "main": "./dist/class/Table.js",
   "repository": "git@github.com:leobrad/records.js.git",
