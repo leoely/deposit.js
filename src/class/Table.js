@@ -203,6 +203,9 @@ class Table {
   }
 
   reduceRecordsCache(count) {
+    if (!Number.isInteger(count)) {
+      throw new Error('[Error] The parameter count should be of integer type.');
+    }
     const { outOfOrder, } = this;
     if (outOfOrder === true) {
       const { counts, } = this;
@@ -286,6 +289,9 @@ class Table {
   }
 
   countSection(section) {
+    if (!Array.isArray(section)) {
+      throw new Error('[Error] The parameter section should be an array type.');
+    }
     const [l, r] = section;
     const { counts, } = this;
     for (let i = l; i <= r; i += 1) {
@@ -298,6 +304,12 @@ class Table {
   }
 
   updateAverageLast(section, sections) {
+    if (!Array.isArray(section)) {
+      throw new Error('[Error] The parameter section should be an array type.');
+    }
+    if (!Array.isArray(sections)) {
+      throw new Error('[Error] The parameter sections should be an array type.');
+    }
     const { length, } = sections;
     const s1 = sections[length - 1];
     const s2 = sections[length - 2];
@@ -318,6 +330,12 @@ class Table {
   }
 
   updateAverageMiddle(i, sections) {
+    if (!Number.isInteger(i)) {
+      throw new Error('[Error] The parameter i should be of integer type.');
+    }
+    if (!Array.isArray(sections)) {
+      throw new Error('[Error] The parameter sections should be an array tyep.');
+    }
     const s1 = sections[i];
     const s2 = sections[i - 1];
     const v1 = getLength(s1);
@@ -337,6 +355,21 @@ class Table {
   }
 
   shadowCopyRecord(l, r, o, ans, datas) {
+    if (!Number.isInteger(l)) {
+      throw new Error('[Error] The parameter l should be of integer type.');
+    }
+    if (!Number.isInteger(r)) {
+      throw new Error('[Error] The parameter r should be of integer type.');
+    }
+    if (!Number.isInteger(o)) {
+      throw new Error('[Error] The parameter o should be of integer type.');
+    }
+    if (!Array.isArray(ans)) {
+      throw new Error('[Error] The parameter ans should be an array type.')
+    }
+    if (!Array.isArray(datas)) {
+      throw new Error('[Error] The parameter datas should be an array type.')
+    }
     const {
       options: {
         spaceOptimize,
@@ -352,6 +385,15 @@ class Table {
   }
 
   async cacheSections(sections, datas, filter) {
+    if (!Array.isArray(sections)) {
+      throw new Error('[Error] The parameter section should be an array type.');
+    }
+    if (!Array.isArray(datas)) {
+      throw new Error('[Error] The parameter datas should be an array type.');
+    }
+    if (typeof filter !== 'string') {
+      throw new Error('[Error] The parameter filter should be of integer type.');
+    }
     const {
       options: {
         type,
@@ -375,6 +417,9 @@ class Table {
   }
 
   concatSections(filter) {
+    if (typeof filter !== 'string') {
+      throw new Error('[Error] The parameter should be of string type.');
+    }
     let { sections, jumps, } = this.hash[filter];
     if (sections.length === 0) {
       return;
@@ -415,6 +460,15 @@ class Table {
   }
 
   arrangeRecords(datas, section, filters) {
+    if (!Array.isArray(datas)) {
+      throw new Error('[Error] The parameter datas should be an array type.');
+    }
+    if (!Array.isArray(section)) {
+      throw new Error('[Error] The parameter seection should be an array type.');
+    }
+    if (!Array.isArray(filters)) {
+      throw new Error('[Error] The parameter filters should be an array type.');
+    }
     const h = {};
     const ans = [];
     filters.forEach((f) => {
@@ -482,6 +536,9 @@ class Table {
   }
 
   async insert(cnt) {
+    if (typeof cnt !== 'object' && !Array.isArray(cnt)) {
+      throw new Error('[Error] The parameter cnt should be an object type or an array type.');
+    }
     const {
       options: {
         type,
@@ -497,6 +554,12 @@ class Table {
   }
 
   async deleteExchange(id, total) {
+    if (!Number.isInteger(id)) {
+      throw new Error('[Error] The parameter id should be of integer type.');
+    }
+    if (!Number.isInteger(total)) {
+      throw new Error('[Error] The parameter total should be of integer type.');
+    }
     const {
       options: {
         type,
@@ -519,6 +582,9 @@ class Table {
   }
 
   deleteDataById(id) {
+    if (!Number.isInteger(id)) {
+      throw new Error('[Error] The parameter id should be of integer type.');
+    }
     const { hash, datas, } = this;
     if (datas[id] !== undefined) {
       Object.keys(datas[id]).forEach((k) => {
@@ -554,6 +620,9 @@ class Table {
   }
 
   async delete(id) {
+    if (!Number.isInteger(id)) {
+      throw new Error('[Error] The parameter id should be of integer type.');
+    }
     const {
       options: {
         type,
@@ -566,6 +635,9 @@ class Table {
   }
 
   async update(obj) {
+    if (typeof obj !== 'object') {
+      throw new Error('[Error] The parameter obj should be of object type.');
+    }
     const {
       options: {
         type,
@@ -578,6 +650,19 @@ class Table {
   }
 
   async select(section, filters, arrange) {
+    if (!Array.isArray(section)) {
+      throw new Error('[Error] The parameter section should be an array type.');
+    }
+    if (filters !== undefined) {
+      if (!Array.isArray(filters)) {
+        throw new Error('[Error] The parameter filters should be an array type.');
+      }
+    }
+    if (arrange !== undefined) {
+      if (typeof arrange !== 'boolean') {
+        throw new Error('[Error] The parameter arrange should be of boolean type.');
+      }
+    }
     const {
       options: {
         type,
@@ -784,6 +869,15 @@ class Table {
   }
 
   calcSections(section, datas, filter) {
+    if (!Array.isArray(section)) {
+      throw new Error('[Error] The parameter section should be an array type.');
+    }
+    if (!Array.isArray(datas)) {
+      throw new Error('[Error] The parameter datas should be an array type.');
+    }
+    if (typeof filter !== 'string') {
+      throw new Error('[Error] The parameter filter should be of string type.');
+    }
     let [index, right] = section;
     const ans = [];
     let pointer = -1;
