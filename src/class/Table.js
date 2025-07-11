@@ -4,11 +4,20 @@ import selectRecord from '~/lib/selectRecord';
 import updateRecord from '~/lib/updateRecord';
 
 function getLength(section) {
+  if (!Array.isArray(section)) {
+    throw new Error('[Error] The parameter section should be an array type.');
+  }
   const [l, r] = section;
   return r - l + 1;
 }
 
 function pairEqual(c1, c2) {
+  if (!Array.isArray(c1)) {
+    throw new Error('[Error] Parameter c1 should be of array type.');
+  }
+  if (!Array.isArray(c2)) {
+    throw new Error('[Error] Parameter c2 should be of array type.');
+  }
   let flag = true;
   for (let i = 0; i < c1.length; i += 1) {
     if (c1[i] !== c2[i]) {
@@ -19,6 +28,24 @@ function pairEqual(c1, c2) {
 }
 
 function deepCopyRecord(l, r, o, ans, datas, filters) {
+  if (!Number.isInteger(l)) {
+    throw new Error('[Error] Parameter l should be of integer type.');
+  }
+  if (!Number.isInteger(r)) {
+    throw new Error('[Error] Parameter r should be of integer type.');
+  }
+  if (!Number.isInteger(o)) {
+    throw new Error('[Error] Parameter o should be of integer type.');
+  }
+  if (!Array.isArray(ans)) {
+    throw new Error('[Error] The parameter ans should be an array type.');
+  }
+  if (!Array.isArray(datas)) {
+    throw new Error('[Error] The parameter datas should be an array type.');
+  }
+  if (!Array.isArray(filters)) {
+    throw new Error('[Error] The parameter filters should be an array type.');
+  }
   for (let i = l; i <= r; i += 1) {
     if (ans[i - o] === undefined) {
       ans[i - o] = {};
@@ -30,6 +57,15 @@ function deepCopyRecord(l, r, o, ans, datas, filters) {
 }
 
 function generateBareJump(sections, i, jumps) {
+  if (!Array.isArray(section)) {
+    throw new Error('[Error] The parameter sections should be an array type.');
+  }
+  if (!Number.isInteger(i)) {
+    throw new Error('[Error] Parameter should be of integer type.');
+  }
+  if (!Array.isArray(jumps)) {
+    throw new Error('[Error] The parameter jumps should be an array type.');
+  }
   const section = sections[i - 1];
   if (section !== undefined) {
     const [l1, r1] = section;
@@ -39,6 +75,9 @@ function generateBareJump(sections, i, jumps) {
 }
 
 function concatSections(sections) {
+  if (!Array.isArray(sections)) {
+    throw new Error('[Error] The parameter sections should be an array type.');
+  }
   if (sections.length === 1) {
     return sections;
   }
@@ -58,6 +97,9 @@ function concatSections(sections) {
 }
 
 function radixSort(list) {
+  if (!Array.isArray(list)) {
+    throw new Error('The parameter list should be an array type.');
+  }
   list = list.map((e) => [e[0], e]);
   const bucket = new Array(10);
   while (true) {
@@ -106,6 +148,9 @@ function radixSort(list) {
 
 class Table {
   constructor(tb, options) {
+    if (typeof tb !== 'string') {
+      throw new Error('[Error] The parameter tb should be of string type.');
+    }
     this.tb = tb;
     this.hash = {};
     this.datas = [];
@@ -113,6 +158,7 @@ class Table {
       bare: 0,
       occupy: 0,
     };
+    this.dealOptions(options);
     this.options = options;
     const {
       options: {
@@ -122,6 +168,23 @@ class Table {
     if (recordUseCount === true) {
       this.counts = [];
       this.outOfOrder = true;
+    }
+  }
+
+  dealOptions(options) {
+    const {
+      type,
+      connection,
+      recordUseCount,
+    } = options;
+    if (typeof type !== 'string') {
+      throw new Error('[Error] The option type should be a string.');
+    }
+    if (typeof connection !== 'object') {
+      throw new Error('[Error] Option connection should be of type object.');
+    }
+    if (typeof recordUseCount !== 'boolean') {
+      throw new Error('[Error] Option recordUseCount should be of boolean type.');
     }
   }
 
