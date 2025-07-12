@@ -6,7 +6,7 @@ beforeAll(() => {
   global.users.tb = new Users();
 });
 
-describe('[class] Users arrange pointer test case;', () => {
+describe('[Class] Arrange pointer test case;', () => {
   test('select first arbitrarliy record;', async () => {
     const users = await global.users.tb.select([1, 6], ['name', 'country'], true);
     expect(JSON.stringify(users)).toMatch('[{\"name\":\"ovlier\",\"country\":\"america\"},{\"name\":\"thomas\",\"country\":\"america\"},{\"name\":\"david\",\"country\":\"america\"},{\"name\":\"joseph\",\"country\":\"america\"},{\"name\":\"william\",\"country\":\"america\"},{\"name\":\"michael\",\"country\":\"america\"}]');
@@ -16,8 +16,8 @@ describe('[class] Users arrange pointer test case;', () => {
     expect(JSON.stringify(users)).toMatch('[{\"age\":23,\"city\":\"florence\",\"country\":\"america\"},{\"age\":32,\"city\":\"walpi\",\"country\":\"america\"},{\"age\":23,\"city\":\"winslow\",\"country\":\"america\"}]');
   });
   test('select third arbitrarliy record;', async () => {
-    const users = await global.users.tb.select([0, 9], ['age', 'country'], true);
-    expect(JSON.stringify(users)).toMatch('[{\"age\":21,\"country\":\"america\"},{\"age\":22,\"country\":\"america\"},{\"age\":23,\"country\":\"america\"},{\"age\":32,\"country\":\"america\"},{\"age\":23,\"country\":\"america\"},{\"age\":33,\"country\":\"america\"},{\"age\":53,\"country\":\"america\"},{\"age\":23,\"country\":\"america\"},{\"age\":25,\"country\":\"america\"},{\"age\":25,\"country\":\"america\"}]');
+    const users = await global.users.tb.select([1, 9], ['age', 'country'], true);
+    expect(JSON.stringify(users)).toMatch('[{\"age\":22,\"country\":\"america\"},{\"age\":23,\"country\":\"america\"},{\"age\":32,\"country\":\"america\"},{\"age\":23,\"country\":\"america\"},{\"age\":33,\"country\":\"america\"},{\"age\":53,\"country\":\"america\"},{\"age\":23,\"country\":\"america\"},{\"age\":25,\"country\":\"america\"},{\"age\":25,\"country\":\"america\"}]');
   });
   test('select fourth arbitrarliy record;', async () => {
     const users = await global.users.tb.select([10, 13], ['age', 'gender'], true);

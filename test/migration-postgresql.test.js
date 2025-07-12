@@ -1,47 +1,53 @@
 import { describe, expect, test, } from '@jest/globals';
-import Users from '~/class/table/PostgresqlUsers';
+import Users from '~/class/table/PostgresqlNoHighIndexUsers';
 import global from '~/obj/global';
 
-beforeAll(() => {
-  global.users.tb = new Users();
+const first = 41;
+const second = 42;
+const third = 43;
+const fourth = 44;
+const fifth = 45;
+
+beforeAll(async () => {
+  global.noHighIndexUsers.tb = new Users();
 });
 
-describe('[class] Users migration postgresql test case;', () => {
+describe('[class] migrating postgresql test case;', () => {
   test('insert arbitrarliy records;', async () => {
-    const global_users_tb = global.users.tb;
-    await global_users_tb.insert([
-      { id: 15, name: 'royal', age: 34, gender: 1, city: 'athens', country: 'america', },
-      { id: 16, name: 'silas', age: 58, gender: 0, city: 'marion', country: 'america', },
-      { id: 17, name: 'eloise', age: 38, gender: 0, city: 'prichard', country: 'america', },
-      { id: 18, name: 'oscar', age: 59, gender: 0, city: 'sylacauga', country: 'america', },
-      { id: 19, name: 'eleanor', age: 83, gender: 0, city: 'tuscaloosa', country: 'america', },
+    const global_noHighIndexUsers_tb = global.noHighIndexUsers.tb;
+    await global_noHighIndexUsers_tb.insert([
+      { id: first, name: 'royal', age: 34, gender: 1, city: 'athens', country: 'america', },
+      { id: second, name: 'silas', age: 58, gender: 0, city: 'marion', country: 'america', },
+      { id: third, name: 'eloise', age: 38, gender: 0, city: 'prichard', country: 'america', },
+      { id: fourth, name: 'oscar', age: 59, gender: 0, city: 'sylacauga', country: 'america', },
+      { id: fifth, name: 'eleanor', age: 83, gender: 0, city: 'tuscaloosa', country: 'america', },
     ]);
-    const users = await global_users_tb.select([15, 19]);
-    expect(JSON.stringify(users)).toMatch('[{\"id\":\"15\",\"name\":\"royal\",\"age\":34,\"gender\":1,\"city\":\"athens\",\"country\":\"america\"},{\"id\":\"16\",\"name\":\"silas\",\"age\":58,\"gender\":0,\"city\":\"marion\",\"country\":\"america\"},{\"id\":\"17\",\"name\":\"eloise\",\"age\":38,\"gender\":0,\"city\":\"prichard\",\"country\":\"america\"},{\"id\":\"18\",\"name\":\"oscar\",\"age\":59,\"gender\":0,\"city\":\"sylacauga\",\"country\":\"america\"},{\"id\":\"19\",\"name\":\"eleanor\",\"age\":83,\"gender\":0,\"city\":\"tuscaloosa\",\"country\":\"america\"}]');
+    const users = await global_noHighIndexUsers_tb.select([first, fifth]);
+    expect(JSON.stringify(users)).toMatch('[{\"id\":\"41\",\"name\":\"royal\",\"age\":34,\"gender\":1,\"city\":\"athens\",\"country\":\"america\"},{\"id\":\"42\",\"name\":\"silas\",\"age\":58,\"gender\":0,\"city\":\"marion\",\"country\":\"america\"},{\"id\":\"43\",\"name\":\"eloise\",\"age\":38,\"gender\":0,\"city\":\"prichard\",\"country\":\"america\"},{\"id\":\"44\",\"name\":\"oscar\",\"age\":59,\"gender\":0,\"city\":\"sylacauga\",\"country\":\"america\"},{\"id\":\"45\",\"name\":\"eleanor\",\"age\":83,\"gender\":0,\"city\":\"tuscaloosa\",\"country\":\"america\"}]');
   });
   test('update arbitrarliy record;', async () => {
-    const global_users_tb = global.users.tb;
-    await global_users_tb.update({ id: 16, age: 18, });
-    const users = await global_users_tb.select([16, 16]);
-    expect(JSON.stringify(users)).toMatch('[{\"id\":\"16\",\"name\":\"silas\",\"age\":18,\"gender\":0,\"city\":\"marion\",\"country\":\"america\"}]');
+    const global_noHighIndexUsers_tb = global.noHighIndexUsers.tb;
+    await global_noHighIndexUsers_tb.update({ id: second, age: 18, });
+    const users = await global_noHighIndexUsers_tb.select([second, second]);
+    expect(JSON.stringify(users)).toMatch('[{\"id\":\"42\",\"name\":\"silas\",\"age\":18,\"gender\":0,\"city\":\"marion\",\"country\":\"america\"}]');
   });
   test('delete arbitrarliy record;', async () => {
-    const global_users_tb = global.users.tb;
-    await global_users_tb.delete(19);
-    const users = await global_users_tb.select([19, 19]);
+    const global_noHighIndexUsers_tb = global.noHighIndexUsers.tb;
+    await global_noHighIndexUsers_tb.delete(fifth);
+    const users = await global_noHighIndexUsers_tb.select([fifth, fifth]);
     expect(JSON.stringify(users)).toMatch('[null]');
   });
   test('delete exchange arbitrarliy record;', async () => {
-    const global_users_tb = global.users.tb;
-    await global_users_tb.deleteExchange(15, 19);
-    const users = await global_users_tb.select([18, 18]);
+    const global_noHighIndexUsers_tb = global.noHighIndexUsers.tb;
+    await global_noHighIndexUsers_tb.deleteExchange(first, fifth);
+    const users = await global_noHighIndexUsers_tb.select([fourth, fourth]);
     expect(JSON.stringify(users)).toMatch('[null]');
   });
 });
 
 afterAll(async () => {
-  const global_users_tb = global.users.tb;
-  await global_users_tb.deleteExchange(16, 18);
-  await global_users_tb.deleteExchange(17, 17);
-  await global_users_tb.deleteExchange(18, 16);
+  const global_noHighIndexUsers_tb = global.noHighIndexUsers.tb;
+  await global_noHighIndexUsers_tb.deleteExchange(second, fourth);
+  await global_noHighIndexUsers_tb.deleteExchange(third, third);
+  await global_noHighIndexUsers_tb.deleteExchange(fourth, second);
 });

@@ -7,15 +7,17 @@ SET sql_mode = 'NO_AUTO_VALUE_ON_ZERO';
 
 SET NAMES utf8mb4;
 
+USE `depositjs`;
+
 DROP TABLE IF EXISTS `users`;
 CREATE TABLE `users` (
-  id bigint NOT NULL,
-  name text,
-  age int DEFAULT NULL,
-  gender int DEFAULT NULL,
-  city text,
-  country text,
-  PRIMARY KEY (id)
+  `id` bigint NOT NULL,
+  `name` text,
+  `age` int DEFAULT NULL,
+  `gender` int DEFAULT NULL,
+  `city` text,
+  `country` text,
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 INSERT INTO `users` (`id`, `name`, `age`, `gender`, `city`, `country`) VALUES
@@ -33,6 +35,32 @@ INSERT INTO `users` (`id`, `name`, `age`, `gender`, `city`, `country`) VALUES
 (11,	'emily',	23,	0,	'fremont',	'america'),
 (12,	'emma',	23,	0,	'fullerton',	'america'),
 (13,	'particia',	24,	1,	'irvine',	'america'),
-(14,	'elizebeth',	52,	1,	'lompoc',	'america');
+(14,	'elizebeth',	52,	1,	'lompoc',	'america'),
+(15,	'bethany',	59,	0,	'honolulu',	'america'),
+(16,	'samantha',	29,	0,	'anahemim',	'america'),
+(17,	'patricia',	58,	0,	'pittsburgh',	'america'),
+(18,	'jacob',	38,	1,	'baltimore',	'america'),
+(19,	'kyle',	43,	1,	'milwaukee',	'america'),
+(20,	'liam',	49,	1,	'albuquerque',	'america'),
+(21,	'noah',	29,	1,	'tucson',	'america'),
+(22,	'damian',	49,	1,	'fresno',	'america'),
+(23,	'reece',	34,	1,	'sacramento',	'america'),
+(24,	'kyle',	83,	1,	'atlanta',	'america'),
+(25,	'noah',	37,	1,	'mesa',	'america'),
+(26,	'tracy',	59,	0,	'ealeigh',	'america'),
+(27,	'amelia',	12,	0,	'omaha',	'america'),
+(28,	'lsla',	49,	0,	'long beach',	'america'),
+(29,	'poppy',	58,	0,	'oakland',	'america'),
+(30,	'susan',	39,	0,	'minneapolis',	'america'),
+(31,	'abigail',	29,	0,	'tulsa',	'america'),
+(32,	'elizabeth',	58,	0,	'bakeersfield',	'america'),
+(33,	'lsabella',	39,	0,	'new orleans',	'america'),
+(34,	'mia',	19,	0,	'henderson',	'america'),
+(35,	'barbara',	48,	0,	'anaheim',	'america'),
+(36,	'lsla',	49,	0,	'saint paul',	'america'),
+(37,	'wendy',	34,	0,	'greensboro',	'america'),
+(38,	'charlie',	58,	1,	'portland',	'america'),
+(39,	'connor',	28,	1,	'detroit',	'america'),
+(40,	'callum',	43,	1,	'memphis',	'america');
 
--- 2023-07-27 04:03:09
+-- 2025-07-13 06:44:41

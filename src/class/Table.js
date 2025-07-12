@@ -1,3 +1,4 @@
+import os from 'os';
 import deleteRecord from '~/lib/deleteRecord';
 import insertRecord from '~/lib/insertRecord';
 import selectRecord from '~/lib/selectRecord';
@@ -146,6 +147,17 @@ function radixSort(list) {
   return ans;
 }
 
+function assignContent(record1, record2) {
+  Object.keys(record2).forEach((k) => {
+    switch (k) {
+      case 'id':
+        break;
+      default:
+        record1[k] = record2[k];
+    }
+  });
+}
+
 class Table {
   constructor(tb, options) {
     if (typeof tb !== 'string') {
@@ -160,22 +172,16 @@ class Table {
     };
     this.dealOptions(options);
     this.options = options;
-    const {
-      options: {
-        recordUseCount,
-      },
-    } = this;
-    if (recordUseCount === true) {
-      this.counts = [];
-      this.outOfOrder = true;
-    }
+    this.counts = [];
+    this.outOfOrder = true;
+    this.full = true;
   }
 
   dealOptions(options) {
     const {
       type,
       connection,
-      recordUseCount,
+      memorySafeLine,
     } = options;
     if (typeof type !== 'string') {
       throw new Error('[Error] The option type should be a string.');
@@ -183,23 +189,40 @@ class Table {
     if (typeof connection !== 'object') {
       throw new Error('[Error] Option connection should be of type object.');
     }
-    if (typeof recordUseCount !== 'boolean') {
-      throw new Error('[Error] Option recordUseCount should be of boolean type.');
+    if (memorySafeLine !== undefined) {
+      if (!Number.isInteger(memorySafeLine)) {
+        throw new Error('[Error] Option memomrySafeLine should be of integer.');
+      }
+      if (!(memorySafeLine > 0)) {
+        throw new Error('[Error] Option memorySafeLine should be a postive integer.');
+      }
+    } else {
+      options.memorySafeLine = 1_000_000;
     }
+  }
+
+  checkMemory() {
+    const freemem = os.freemem();
+    let ans = false;
+    if (freemem > 0) {
+      ans = true;
+    } else {
+    }
+    return ans;
   }
 
   emptyCache() {
     this.hash = {};
     this.datas = [];
-    const {
-      options: {
-        recordUseCount,
-      },
-    } = this;
-    if (recordUseCount === true) {
-      this.counts = [];
-      this.outOfOrder = true;
-    }
+    this.counts = [];
+    this.outOfOrder = true;
+  }
+
+  sortOrders() {
+    const { counts, } = this;
+    this.orders = counts.map((e, i) => [e, i]);
+    this.orders = radixSort(this.orders);
+    this.outOfOrder = false;
   }
 
   reduceRecordsCache(count) {
@@ -208,15 +231,13 @@ class Table {
     }
     const { outOfOrder, } = this;
     if (outOfOrder === true) {
-      const { counts, } = this;
-      this.orders = counts.map((e, i) => [e, i]);
-      this.orders = radixSort(this.orders);
+      this.sortOrders();
       const { orders, } = this;
       for (let i = 0; i < count; i += 1) {
         const [_, x] = orders[i];
         this.deleteDataById(x);
       }
-      this.outOfOrder = false;
+      this.outOfOrder = true;
     }
   }
 
@@ -299,8 +320,8 @@ class Table {
         counts[i] = 0;
       }
       counts[i] += 1;
-      this.outOfOrder = true;
     }
+    this.outOfOrdder = true;
   }
 
   updateAverageLast(section, sections) {
@@ -570,6 +591,7 @@ class Table {
       const { tb, } = this;
       await deleteRecord(type, connection, tb, id);
       this.deleteDataById(id);
+      this.outOfOrder = true;
     } else {
       const { tb, } = this;
       const records = await selectRecord(type, connection, tb, [total - 1, total - 1]);
@@ -578,6 +600,7 @@ class Table {
       record.id = id;
       await updateRecord(type, connection, tb, record);
       this.deleteDataById(total - 1);
+      this.outOfOrder = true;
     }
   }
 
@@ -615,7 +638,30 @@ class Table {
       if (recordUseCount === true) {
         const { counts, } = this;
         counts[id] = 0;
+        const { length, } = counts;
+        if (id === length) {
+          const {
+            options: {
+              memorySafeLine,
+            },
+          } = this;
+          const newLength = length - 1;
+          if (newLength >= memorySafeLine) {
+            this.full = true;
+          } else {
+            this.full = false;
+          }
+        } else {
+          this.full = false;
+        }
       }
+    }
+  }
+
+  async deleteAll(ids) {
+    for (let i = 0; i < ids.length; i += 1) {
+      const id = ids[i];
+      await this.delete(id);
     }
   }
 
@@ -632,6 +678,7 @@ class Table {
     } = this;
     await deleteRecord(type, connection, tb, id);
     this.deleteDataById(id);
+    this.outOfOrder = true;
   }
 
   async update(obj) {
@@ -647,6 +694,130 @@ class Table {
     } = this;
     await updateRecord(type, connection, tb, obj);
     this.deleteDataById(obj.id);
+    this.outOfOrder = true;
+  }
+
+  async getSimpleRecord(id) {
+    const { counts, } = this;
+    let record;
+    if (counts[id] === undefined) {
+      const {
+        options: {
+          type,
+          connection,
+        },
+        datas, tb,
+      } = this;
+      record = await selectRecord(type, connection, tb, [id, id]);
+    } else {
+      record = await this.select([id, id]);
+    }
+    return record;
+  }
+
+  async exchangeContent(id1, id2) {
+    if (!Number.isInteger(id1)) {
+      throw new Error('[Error] Parameter id1 should be an integer type.');
+    }
+    if (!(id1 >= 0)) {
+      throw new Error('[Error] The parameter id1 value should be greatet than or equal to zero');
+    }
+    if (!Number.isInteger(id2)) {
+      throw new Error('[Error] Parameter id2 should be an integer type.');
+    }
+    if (!(id2 >= 0)) {
+      throw new Error('[Error] The parameter id2 value should be greatet than or equal to zero');
+    }
+    const [highRecord] = await this.getSimpleRecord(id1);
+    const [lowRecord] = await this.getSimpleRecord(id2);
+    const lowRecordCopy = {...lowRecord};
+    assignContent(lowRecord, highRecord);
+    assignContent(highRecord, lowRecordCopy);
+    await this.update(lowRecord);
+    await this.update(highRecord);
+  }
+
+  async exchangeHighIndex(highId) {
+    if (!Number.isInteger(highId)) {
+      throw new Error('[Error] The parameter highId should be of integer.');
+    }
+    const {
+      full,
+    } = this;
+    let mapping;
+    switch (full) {
+      case true: {
+        const {
+          options: {
+            memorySafeLine,
+          },
+          counts,
+        } = this;
+        if ((counts.length - 1) < memorySafeLine) {
+          mapping = await this.exchangeNotFull(highId);
+        } else {
+          mapping = await this.exchangeFull(highId);
+        }
+        break;
+      }
+      case false:
+        mapping = await this.exchangeNotFull(highId);
+        break;
+      default:
+        throw new Error('[Error] The internal variable is full of abnormal values.');
+    }
+    return mapping;
+  }
+
+  async exchangeNotFull(highId) {
+    if (!Number.isInteger(highId)) {
+      throw new Error('[Error] The parameter highId should be of integer.');
+    }
+    const {
+      options: {
+        memorySafeLine,
+      },
+      counts,
+    } = this;
+    let emptyId;
+    let full = true;
+    const { length, } = counts;
+    if (this.full === false || length - 1 >= memorySafeLine) {
+      for (let i = 0; i < counts.length; i += 1) {
+        const count = counts[i];
+        if (count === undefined || count === 0) {
+          emptyId = i;
+          full = false;
+          break;
+        }
+      }
+    } else {
+      emptyId = length - 1 + 1;
+      full = this.full;
+    }
+    this.full = full;
+    await this.exchangeContent(highId, emptyId);
+    return [highId, emptyId];
+  }
+
+  async exchangeFull(highId) {
+    if (!Number.isInteger(highId)) {
+      throw new Error('[Error] The parameter highId should be of integer.');
+    }
+    const { counts, } = this;
+    if (this.checkMemory()) {
+      const lowId = counts.length - 1 + 1;
+      await this.exchangeContent(highId, lowId);
+    } else {
+      this.sortOrders();
+      const [_, lowId] = this.orders[0];
+      await this.exchangeContent(highId, lowId);
+    }
+    return [highId, lowId];
+  }
+
+  getMappings() {
+    return this.mappings;
   }
 
   async select(section, filters, arrange) {
@@ -665,14 +836,50 @@ class Table {
     }
     const {
       options: {
-        type,
-        connection,
+        memorySafeLine,
       },
-      datas, tb,
     } = this;
+    const [l, r] = section;
+    if (memorySafeLine <= r) {
+      const mappings = [];
+      const max = Math.max(l, memorySafeLine);
+      for (let i = max; i <= r; i += 1) {
+        const mapping = await this.exchangeHighIndex(i);
+        mappings.push(mapping);
+      }
+      if (this.mappings === undefined) {
+        this.mappings = mappings;
+      } else {
+        throw new Error('[Error] The result of the last high-level index hash not been obtained yet.');
+      }
+      let originRecords;
+      if (l < memorySafeLine) {
+        const section = [l, memorySafeLine - 1];
+        originRecords = await this.select(section, filters, arrange);
+      } else {
+        originRecords = [];
+      }
+      const exchangeRecords = [];
+      const { mappings: corresponds, } = this;
+      for (let i = 0; i < corresponds.length; i += 1) {
+        const correspond = corresponds[i];
+        const [_, id] = correspond;
+        const [record] = await this.select([id, id], filters, arrange);
+        exchangeRecords.push(record);
+      }
+      return originRecords.concat(exchangeRecords);
+    }
+    const { datas, } = this;
     let records;
     if (filters === undefined) {
       if (this.columns === undefined) {
+        const {
+          options: {
+            type,
+            connection,
+          },
+          tb,
+        } = this;
         const index = section[0];
         records = await selectRecord(type, connection, tb, [index, index]);
         const record = records[0];
