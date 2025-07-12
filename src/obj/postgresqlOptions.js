@@ -11,6 +11,7 @@ const options = {
   type: 'postgresql',
   connection: client.connect(),
   recordUseCount: true,
+  memorySafeLine: 26,
 };
 
 export default options;

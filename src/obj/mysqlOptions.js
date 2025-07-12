@@ -16,6 +16,7 @@ const options = {
   type: 'mysql',
   connection,
   recordUseCount: true,
+  memorySafeLine: 26,
 };
 
 export default options;

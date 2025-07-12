@@ -6,7 +6,7 @@ beforeAll(() => {
   global.users.tb = new Users();
 });
 
-describe('[class] Users select row test case;', () => {
+describe('[Class] Select row test case;', () => {
   test('select first arbitrarliy records;', async () => {
     const users = await global.users.tb.select([0, 2], ['name', 'age']);
     expect(JSON.stringify(users)).toMatch('[{\"name\":\"james\",\"age\":21},{\"name\":\"ovlier\",\"age\":22},{\"name\":\"thomas\",\"age\":23}]');

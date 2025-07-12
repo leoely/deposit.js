@@ -6,7 +6,7 @@ beforeAll(() => {
   global.users.tb = new Users();
 });
 
-describe('[class] Users composite test case;', () => {
+describe('[class] Composite test case;', () => {
   test('insert arbitrarliy records;', async () => {
     const global_users_tb = global.users.tb;
     await global_users_tb.insert([
