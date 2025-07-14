@@ -197,7 +197,7 @@ class Table {
         throw new Error('[Error] Option memorySafeLine should be a postive integer.');
       }
     } else {
-      options.memorySafeLine = 1_000_000;
+      options.memorySafeLine = 1000_000;
     }
   }
 
