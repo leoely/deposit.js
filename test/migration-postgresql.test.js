@@ -13,7 +13,7 @@ beforeAll(async () => {
 });
 
 describe('[class] migrating postgresql test case;', () => {
-  test('insert arbitrarliy records;', async () => {
+  test('Insert arbitrarliy records;', async () => {
     const global_noHighIndexUsers_tb = global.noHighIndexUsers.tb;
     await global_noHighIndexUsers_tb.insert([
       { id: first, name: 'royal', age: 34, gender: 1, city: 'athens', country: 'america', },
@@ -25,19 +25,19 @@ describe('[class] migrating postgresql test case;', () => {
     const users = await global_noHighIndexUsers_tb.select([first, fifth]);
     expect(JSON.stringify(users)).toMatch('[{\"id\":\"41\",\"name\":\"royal\",\"age\":34,\"gender\":1,\"city\":\"athens\",\"country\":\"america\"},{\"id\":\"42\",\"name\":\"silas\",\"age\":58,\"gender\":0,\"city\":\"marion\",\"country\":\"america\"},{\"id\":\"43\",\"name\":\"eloise\",\"age\":38,\"gender\":0,\"city\":\"prichard\",\"country\":\"america\"},{\"id\":\"44\",\"name\":\"oscar\",\"age\":59,\"gender\":0,\"city\":\"sylacauga\",\"country\":\"america\"},{\"id\":\"45\",\"name\":\"eleanor\",\"age\":83,\"gender\":0,\"city\":\"tuscaloosa\",\"country\":\"america\"}]');
   });
-  test('update arbitrarliy record;', async () => {
+  test('Uppdate arbitrarliy record;', async () => {
     const global_noHighIndexUsers_tb = global.noHighIndexUsers.tb;
     await global_noHighIndexUsers_tb.update({ id: second, age: 18, });
     const users = await global_noHighIndexUsers_tb.select([second, second]);
     expect(JSON.stringify(users)).toMatch('[{\"id\":\"42\",\"name\":\"silas\",\"age\":18,\"gender\":0,\"city\":\"marion\",\"country\":\"america\"}]');
   });
-  test('delete arbitrarliy record;', async () => {
+  test('Delete arbitrarliy record;', async () => {
     const global_noHighIndexUsers_tb = global.noHighIndexUsers.tb;
     await global_noHighIndexUsers_tb.delete(fifth);
     const users = await global_noHighIndexUsers_tb.select([fifth, fifth]);
     expect(JSON.stringify(users)).toMatch('[null]');
   });
-  test('delete exchange arbitrarliy record;', async () => {
+  test('Delete exchange arbitrarliy record;', async () => {
     const global_noHighIndexUsers_tb = global.noHighIndexUsers.tb;
     await global_noHighIndexUsers_tb.deleteExchange(first, fifth);
     const users = await global_noHighIndexUsers_tb.select([fourth, fourth]);

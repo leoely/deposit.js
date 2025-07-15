@@ -58,7 +58,7 @@ function deepCopyRecord(l, r, o, ans, datas, filters) {
 }
 
 function generateBareJump(sections, i, jumps) {
-  if (!Array.isArray(section)) {
+  if (!Array.isArray(sections)) {
     throw new Error('[Error] The parameter sections should be an array type.');
   }
   if (!Number.isInteger(i)) {
@@ -216,6 +216,7 @@ class Table {
     this.datas = [];
     this.counts = [];
     this.outOfOrder = true;
+    this.full = true;
   }
 
   sortOrders() {
@@ -236,6 +237,7 @@ class Table {
       for (let i = 0; i < count; i += 1) {
         const [_, x] = orders[i];
         this.deleteDataById(x);
+        this.full = false;
       }
       this.outOfOrder = true;
     }
@@ -457,11 +459,11 @@ class Table {
             occupy,
           },
         } = this;
-        const [l1, r1] = section[i];
-        const [l2, r2] = section[i + 1];
-        const v1 = getLength(section[i]);
+        const [l1, r1] = sections[i];
+        const [l2, r2] = sections[i + 1];
+        const v1 = getLength(sections[i]);
         this.average.occupy = (v1 + occupy) / 2;
-        const v2 = getLength(section[i + 1]);
+        const v2 = getLength(sections[i + 1]);
         this.average.occupy = (v2 + occupy) / 2;
         const v3 = getLength([r1 + 1, l2 - 1]);
         this.average.bare = (v3 + occupy) / 2;
@@ -592,6 +594,7 @@ class Table {
       await deleteRecord(type, connection, tb, id);
       this.deleteDataById(id);
       this.outOfOrder = true;
+      this.full = false;
     } else {
       const { tb, } = this;
       const records = await selectRecord(type, connection, tb, [total - 1, total - 1]);
@@ -601,6 +604,7 @@ class Table {
       await updateRecord(type, connection, tb, record);
       this.deleteDataById(total - 1);
       this.outOfOrder = true;
+      this.full = false;
     }
   }
 
@@ -630,30 +634,23 @@ class Table {
         }
       });
       datas[id] = undefined;
-      const {
-        options: {
-          recordUseCount,
-        },
-      } = this;
-      if (recordUseCount === true) {
-        const { counts, } = this;
-        counts[id] = 0;
-        const { length, } = counts;
-        if (id === length) {
-          const {
-            options: {
-              memorySafeLine,
-            },
-          } = this;
-          const newLength = length - 1;
-          if (newLength >= memorySafeLine) {
-            this.full = true;
-          } else {
-            this.full = false;
-          }
+      const { counts, } = this;
+      counts[id] = 0;
+      const { length, } = counts;
+      if (id === length) {
+        const {
+          options: {
+            memorySafeLine,
+          },
+        } = this;
+        const newLength = length - 1;
+        if (newLength >= memorySafeLine) {
+          this.full = true;
         } else {
           this.full = false;
         }
+      } else {
+        this.full = false;
       }
     }
   }
@@ -679,6 +676,7 @@ class Table {
     await deleteRecord(type, connection, tb, id);
     this.deleteDataById(id);
     this.outOfOrder = true;
+    this.full = false;
   }
 
   async update(obj) {
@@ -695,6 +693,7 @@ class Table {
     await updateRecord(type, connection, tb, obj);
     this.deleteDataById(obj.id);
     this.outOfOrder = true;
+    this.full = false;
   }
 
   async getSimpleRecord(id) {
@@ -710,7 +709,7 @@ class Table {
       } = this;
       record = await selectRecord(type, connection, tb, [id, id]);
     } else {
-      record = await this.select([id, id]);
+      record = await this.select([id, id], undefined, undefined, false);
     }
     return record;
   }
@@ -780,10 +779,10 @@ class Table {
       counts,
     } = this;
     let emptyId;
-    let full = true;
     const { length, } = counts;
-    if (this.full === false || length - 1 >= memorySafeLine) {
-      for (let i = 0; i < counts.length; i += 1) {
+    if (this.full === false) {
+      let full = true;
+      for (let i = 0; i < length; i += 1) {
         const count = counts[i];
         if (count === undefined || count === 0) {
           emptyId = i;
@@ -791,11 +790,15 @@ class Table {
           break;
         }
       }
+      if (full === true) {
+        emptyId = length - 1 + 1;
+      }
+      this.full = full;
     } else {
-      emptyId = length - 1 + 1;
-      full = this.full;
+      if (length - 1 < memorySafeLine) {
+        emptyId = length - 1 + 1;
+      }
     }
-    this.full = full;
     await this.exchangeContent(highId, emptyId);
     return [highId, emptyId];
   }
@@ -817,10 +820,15 @@ class Table {
   }
 
   getMappings() {
-    return this.mappings;
+    const { mappings, } = this;
+    if (mappings === undefined) {
+      throw new Error('[Error] There is no mapping that can be obtained yet or the previous mapping has already been obtained.');
+    }
+    delete this.mappings;
+    return mappings;
   }
 
-  async select(section, filters, arrange) {
+  async select(section, filters, arrange, enter) {
     if (!Array.isArray(section)) {
       throw new Error('[Error] The parameter section should be an array type.');
     }
@@ -834,40 +842,45 @@ class Table {
         throw new Error('[Error] The parameter arrange should be of boolean type.');
       }
     }
-    const {
-      options: {
-        memorySafeLine,
-      },
-    } = this;
-    const [l, r] = section;
-    if (memorySafeLine <= r) {
-      const mappings = [];
-      const max = Math.max(l, memorySafeLine);
-      for (let i = max; i <= r; i += 1) {
-        const mapping = await this.exchangeHighIndex(i);
-        mappings.push(mapping);
+    if (enter !== undefined) {
+      if (typeof enter !== 'boolean') {
+        throw new Error('[Error] The parameter pass should be of boolean type.');
       }
-      if (this.mappings === undefined) {
-        this.mappings = mappings;
-      } else {
-        throw new Error('[Error] The result of the last high-level index hash not been obtained yet.');
+    }
+    if (enter === undefined || enter === true) {
+      const {
+        options: {
+          memorySafeLine,
+        },
+      } = this;
+      const [l, r] = section;
+      if (memorySafeLine <= r) {
+        const max = Math.max(l, memorySafeLine);
+        let originRecords;
+        if (l < memorySafeLine) {
+          const section = [l, memorySafeLine - 1];
+          originRecords = await this.select(section, filters, arrange, false);
+        } else {
+          originRecords = [];
+        }
+        this.full = false;
+        const mappings = [];
+        const exchangeRecords = [];
+        for (let i = max; i <= r; i += 1) {
+          const mapping = await this.exchangeHighIndex(i);
+          const [_, id] = mapping;
+          let [record] = await this.select([id, id], filters, arrange, false);
+          exchangeRecords.push(record);
+          mappings.push(mapping);
+        }
+        if (this.mappings === undefined) {
+          this.mappings = mappings;
+        } else {
+          throw new Error('[Error] The result of the last high-level index hash not been obtained yet.');
+        }
+        this.full = false;
+        return originRecords.concat(exchangeRecords);
       }
-      let originRecords;
-      if (l < memorySafeLine) {
-        const section = [l, memorySafeLine - 1];
-        originRecords = await this.select(section, filters, arrange);
-      } else {
-        originRecords = [];
-      }
-      const exchangeRecords = [];
-      const { mappings: corresponds, } = this;
-      for (let i = 0; i < corresponds.length; i += 1) {
-        const correspond = corresponds[i];
-        const [_, id] = correspond;
-        const [record] = await this.select([id, id], filters, arrange);
-        exchangeRecords.push(record);
-      }
-      return originRecords.concat(exchangeRecords);
     }
     const { datas, } = this;
     let records;
@@ -1063,14 +1076,7 @@ class Table {
           records = datas.slice(section[0], section[1] + 1)
         }
       }
-      const {
-        options: {
-          recordUseCount,
-        },
-      } = this;
-      if (recordUseCount === true) {
-        this.countSection(section);
-      }
+      this.countSection(section);
     }
     return records;
   }
@@ -1192,9 +1198,10 @@ class Table {
           const [l2, r2] = s;
           if (index > r1 && index < l2) {
             pointer = i + 1;
-            const section = [index, l2];
+            const min = Math.min(right, l2);
+            const section = [index, min];
             if (l2 <= right) {
-              index = l2;
+              index = min;
             }
             ans.push(section);
             sections.splice(i + 1, 0, section);

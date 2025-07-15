@@ -58,6 +58,20 @@ function selectRecordInPostgresql(connection, tb, section, filters) {
 }
 
 export default function selectRecord(type, connection, tb, section, filters) {
+  if (typeof type !== 'string') {
+    throw new Error('[Error] The parameter type is a string type.');
+  }
+  if (typeof tb !== 'string') {
+    throw new Error('[Error] The parameter tb is a string type.');
+  }
+  if (!Array.isArray(section)) {
+    throw new Error('[Error] The parameter is a array type.');
+  } else {
+    const [l, r] = section;
+    if (l > r || r < l) {
+      throw new Error('[Error] The left value of the interval cannot be greater than the right value.');
+    }
+  }
   if (type === 'mysql') {
     return selectRecordInMysql(connection, tb, section, filters);
   } else {

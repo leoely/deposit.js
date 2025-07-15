@@ -10,7 +10,6 @@ const client = new Pool({
 const options = {
   type: 'postgresql',
   connection: client.connect(),
-  recordUseCount: true,
   memorySafeLine: 30,
 };
 

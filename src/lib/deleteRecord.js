@@ -19,6 +19,12 @@ function deleteRecordInPostgresql(connection, tb, id) {
 }
 
 export default function deleteRecord(type, connection, tb, id) {
+  if (typeof type !== 'string') {
+    throw new Error('[Error] The parameter type is a string type.');
+  }
+  if (typeof tb !== 'string') {
+    throw new Error('[Error] The parameter tb is a string type.');
+  }
   if (type === 'mysql') {
     return deleteRecordInMysql(connection, tb, id);
   } else {
