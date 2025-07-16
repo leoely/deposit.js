@@ -202,6 +202,12 @@ class Table {
   }
 
   checkMemory() {
+    const {
+      temporaryMemorySwitch,
+    } = this;
+    if (temporaryMemorySwitch === true) {
+      return false;
+    }
     const freemem = os.freemem();
     let ans = false;
     if (freemem > 0) {
