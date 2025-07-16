@@ -61,15 +61,28 @@ export default function selectRecord(type, connection, tb, section, filters) {
   if (typeof type !== 'string') {
     throw new Error('[Error] The parameter type is a string type.');
   }
+  const {
+    constructor: {
+      name,
+    },
+  } = connection;
+  if (!(name === 'Promise' || name === 'Pool')) {
+    throw new Error('[Error] The parameter connection should be of Promise type of Pool type.');
+  }
   if (typeof tb !== 'string') {
     throw new Error('[Error] The parameter tb is a string type.');
   }
   if (!Array.isArray(section)) {
-    throw new Error('[Error] The parameter is a array type.');
+    throw new Error('[Error] The parameter section should be of array type.');
   } else {
     const [l, r] = section;
-    if (l > r || r < l) {
+    if (l > r) {
       throw new Error('[Error] The left value of the interval cannot be greater than the right value.');
+    }
+  }
+  if (filters !== undefined) {
+    if (!Array.isArray(filters)) {
+      throw new Error('[Error] The parameter filters should be of array type.');
     }
   }
   if (type === 'mysql') {

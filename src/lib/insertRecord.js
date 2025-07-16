@@ -44,6 +44,23 @@ function insertRecordInPostgresql(connection, tb, objs) {
 }
 
 export default function insertRecord(type, connection, tb, objs) {
+  if (typeof type !== 'string') {
+    throw new Error('[Error] The parameter type is a string type.');
+  }
+  const {
+    constructor: {
+      name,
+    },
+  } = connection;
+  if (!(name === 'Promise' || name === 'Pool')) {
+    throw new Error('[Error] The parameter connection should be of Promise type of Pool type.');
+  }
+  if (typeof tb !== 'string') {
+    throw new Error('[Error] The parameter tb is a string type.');
+  }
+  if (!Array.isArray(objs)) {
+    throw new Error('[Error] The parameter should be of array type.');
+  }
   if (type === 'mysql') {
     return insertRecordInMysql(connection, tb, objs);
   } else {

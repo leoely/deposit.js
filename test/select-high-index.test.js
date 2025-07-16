@@ -9,6 +9,7 @@ beforeAll(() => {
 describe('[Class] Select high index test cases;', () => {
   test('Test multiple high index situations;', async () => {
     const global_users_tb = global.users.tb;
+
     const users1 = await global_users_tb.select([35, 35]);
     expect(JSON.stringify(users1)).toMatch('[{\"id\":0,\"name\":\"barbara\",\"age\":48,\"gender\":0,\"city\":\"anaheim\",\"country\":\"america\"}]');
     const users2 = await global_users_tb.select([0, 0]);
@@ -50,8 +51,19 @@ describe('[Class] Select high index test cases;', () => {
     const users11 = await global_users_tb.select([24, 33]);
     expect(JSON.stringify(users11)).toMatch('[{\"id\":24,\"name\":\"kyle\",\"age\":83,\"gender\":1,\"city\":\"atlanta\",\"country\":\"america\"},{\"id\":25,\"name\":\"noah\",\"age\":37,\"gender\":1,\"city\":\"mesa\",\"country\":\"america\"},{\"id\":26,\"name\":\"tracy\",\"age\":59,\"gender\":0,\"city\":\"ealeigh\",\"country\":\"america\"},{\"id\":27,\"name\":\"amelia\",\"age\":12,\"gender\":0,\"city\":\"omaha\",\"country\":\"america\"},{\"id\":28,\"name\":\"lsla\",\"age\":49,\"gender\":0,\"city\":\"long beach\",\"country\":\"america\"},{\"id\":29,\"name\":\"poppy\",\"age\":58,\"gender\":0,\"city\":\"oakland\",\"country\":\"america\"},{\"id\":5,\"name\":\"susan\",\"age\":39,\"gender\":0,\"city\":\"minneapolis\",\"country\":\"america\"},{\"id\":6,\"name\":\"abigail\",\"age\":29,\"gender\":0,\"city\":\"tulsa\",\"country\":\"america\"},{\"id\":7,\"name\":\"elizabeth\",\"age\":58,\"gender\":0,\"city\":\"bakeersfield\",\"country\":\"america\"},{\"id\":8,\"name\":\"lsabella\",\"age\":39,\"gender\":0,\"city\":\"new orleans\",\"country\":\"america\"}]');
     const mappings3 = global_users_tb.getMappings();
-    for (let i = 0; i < mappings3.length; i += 1) {
+    for (let i = mappings3.length - 1; i >= 0; i -= 1) {
       const [highId, lowId] = mappings3[i];
+      await global_users_tb.exchangeContent(highId, lowId);
+    }
+    global_users_tb.emptyCache();
+
+    const users12 = await global_users_tb.select([0, 29]);
+    expect(JSON.stringify(users12)).toMatch('[{\"id\":0,\"name\":\"james\",\"age\":21,\"gender\":1,\"city\":\"sitka\",\"country\":\"america\"},{\"id\":1,\"name\":\"ovlier\",\"age\":22,\"gender\":1,\"city\":\"clifton\",\"country\":\"america\"},{\"id\":2,\"name\":\"thomas\",\"age\":23,\"gender\":1,\"city\":\"florence\",\"country\":\"america\"},{\"id\":3,\"name\":\"david\",\"age\":32,\"gender\":1,\"city\":\"walpi\",\"country\":\"america\"},{\"id\":4,\"name\":\"joseph\",\"age\":23,\"gender\":1,\"city\":\"winslow\",\"country\":\"america\"},{\"id\":5,\"name\":\"william\",\"age\":33,\"gender\":1,\"city\":\"helena\",\"country\":\"america\"},{\"id\":6,\"name\":\"michael\",\"age\":53,\"gender\":1,\"city\":\"morrilton\",\"country\":\"america\"},{\"id\":7,\"name\":\"george\",\"age\":23,\"gender\":1,\"city\":\"arcadia\",\"country\":\"america\"},{\"id\":8,\"name\":\"alexander\",\"age\":25,\"gender\":1,\"city\":\"coronado\",\"country\":\"america\"},{\"id\":9,\"name\":\"john\",\"age\":25,\"gender\":1,\"city\":\"eureka\",\"country\":\"america\"},{\"id\":10,\"name\":\"taylor\",\"age\":23,\"gender\":0,\"city\":\"fairfield\",\"country\":\"america\"},{\"id\":11,\"name\":\"emily\",\"age\":23,\"gender\":0,\"city\":\"fremont\",\"country\":\"america\"},{\"id\":12,\"name\":\"emma\",\"age\":23,\"gender\":0,\"city\":\"fullerton\",\"country\":\"america\"},{\"id\":13,\"name\":\"particia\",\"age\":24,\"gender\":1,\"city\":\"irvine\",\"country\":\"america\"},{\"id\":14,\"name\":\"elizebeth\",\"age\":52,\"gender\":1,\"city\":\"lompoc\",\"country\":\"america\"},{\"id\":15,\"name\":\"bethany\",\"age\":59,\"gender\":0,\"city\":\"honolulu\",\"country\":\"america\"},{\"id\":16,\"name\":\"samantha\",\"age\":29,\"gender\":0,\"city\":\"anahemim\",\"country\":\"america\"},{\"id\":17,\"name\":\"patricia\",\"age\":58,\"gender\":0,\"city\":\"pittsburgh\",\"country\":\"america\"},{\"id\":18,\"name\":\"jacob\",\"age\":38,\"gender\":1,\"city\":\"baltimore\",\"country\":\"america\"},{\"id\":19,\"name\":\"kyle\",\"age\":43,\"gender\":1,\"city\":\"milwaukee\",\"country\":\"america\"},{\"id\":20,\"name\":\"liam\",\"age\":49,\"gender\":1,\"city\":\"albuquerque\",\"country\":\"america\"},{\"id\":21,\"name\":\"noah\",\"age\":29,\"gender\":1,\"city\":\"tucson\",\"country\":\"america\"},{\"id\":22,\"name\":\"damian\",\"age\":49,\"gender\":1,\"city\":\"fresno\",\"country\":\"america\"},{\"id\":23,\"name\":\"reece\",\"age\":34,\"gender\":1,\"city\":\"sacramento\",\"country\":\"america\"},{\"id\":24,\"name\":\"kyle\",\"age\":83,\"gender\":1,\"city\":\"atlanta\",\"country\":\"america\"},{\"id\":25,\"name\":\"noah\",\"age\":37,\"gender\":1,\"city\":\"mesa\",\"country\":\"america\"},{\"id\":26,\"name\":\"tracy\",\"age\":59,\"gender\":0,\"city\":\"ealeigh\",\"country\":\"america\"},{\"id\":27,\"name\":\"amelia\",\"age\":12,\"gender\":0,\"city\":\"omaha\",\"country\":\"america\"},{\"id\":28,\"name\":\"lsla\",\"age\":49,\"gender\":0,\"city\":\"long beach\",\"country\":\"america\"},{\"id\":29,\"name\":\"poppy\",\"age\":58,\"gender\":0,\"city\":\"oakland\",\"country\":\"america\"}]');
+    const users13 = await global_users_tb.select([37, 39]);
+    expect(JSON.stringify(users13)).toMatch('[{\"id\":30,\"name\":\"wendy\",\"age\":34,\"gender\":0,\"city\":\"greensboro\",\"country\":\"america\"},{\"id\":31,\"name\":\"charlie\",\"age\":58,\"gender\":1,\"city\":\"portland\",\"country\":\"america\"},{\"id\":32,\"name\":\"connor\",\"age\":28,\"gender\":1,\"city\":\"detroit\",\"country\":\"america\"}]');
+    const mappings4 = global_users_tb.getMappings();
+    for (let i = 0; i < mappings4.length; i += 1) {
+      const [highId, lowId] = mappings4[i];
       await global.users.tb.exchangeContent(highId, lowId);
     }
     global_users_tb.emptyCache();

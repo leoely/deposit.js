@@ -34,6 +34,23 @@ function updateRecordInPostgresql(connection, tb, obj) {
 }
 
 export default function updateRecord(type, connection, tb, obj) {
+  if (typeof type !== 'string') {
+    throw new Error('[Error] The parameter type is a string type.');
+  }
+  const {
+    constructor: {
+      name,
+    },
+  } = connection;
+  if (!(name === 'Promise' || name === 'Pool')) {
+    throw new Error('[Error] The parameter connection should be of Promise type of Pool type.');
+  }
+  if (typeof tb !== 'string') {
+    throw new Error('[Error] The parameter tb is a string type.');
+  }
+  if (typeof obj !== 'object') {
+    throw new Error('[Error] The parameter obj should be of object type.');
+  }
   if (type === 'mysql') {
     return updateRecordInMysql(connection, tb, obj);
   } else {

@@ -22,8 +22,19 @@ export default function deleteRecord(type, connection, tb, id) {
   if (typeof type !== 'string') {
     throw new Error('[Error] The parameter type is a string type.');
   }
+  const {
+    constructor: {
+      name,
+    },
+  } = connection;
+  if (!(name === 'Promise' || name === 'Pool')) {
+    throw new Error('[Error] The parameter connection should be of Promise type of Pool type.');
+  }
   if (typeof tb !== 'string') {
     throw new Error('[Error] The parameter tb is a string type.');
+  }
+  if (!(Number.isInteger(id) || id instanceof BigInt)) {
+    throw new Error('[Error] The parameter should be of integer type.');
   }
   if (type === 'mysql') {
     return deleteRecordInMysql(connection, tb, id);
