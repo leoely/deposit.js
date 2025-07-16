@@ -627,8 +627,9 @@ class Table {
             }
             if (id > l && id < r) {
               sections.splice(i, 1, [l, id - 1], [id + 1, r]);
+              delete jumps[id];
               jumps[l] = [id - 1, i];
-              jumps[id + 1] = [r, i + 1];
+              jumps[id + 1] = [r -1, i + 1];
             }
           });
         }
@@ -699,7 +700,7 @@ class Table {
   async getSimpleRecord(id) {
     const { counts, } = this;
     let record;
-    if (counts[id] === undefined) {
+    if (counts[id] === undefined || counts[id] === 0) {
       const {
         options: {
           type,
@@ -791,7 +792,17 @@ class Table {
         }
       }
       if (full === true) {
-        emptyId = length - 1 + 1;
+        const {
+          options: {
+            memorySafeLine,
+          },
+          counts,
+        } = this;
+        if (counts.length >= memorySafeLine) {
+          return this.exchangeFull(highId);
+        } else {
+          emptyId = length - 1 + 1;
+        }
       }
       this.full = full;
     } else {
@@ -808,14 +819,29 @@ class Table {
       throw new Error('[Error] The parameter highId should be of integer.');
     }
     const { counts, } = this;
+    let lowId;
     if (this.checkMemory()) {
-      const lowId = counts.length - 1 + 1;
-      await this.exchangeContent(highId, lowId);
+      lowId = counts.length - 1 + 1;
     } else {
       this.sortOrders();
-      const [_, lowId] = this.orders[0];
-      await this.exchangeContent(highId, lowId);
+      const { candidates, } = this;
+      if (candidates.length === 0) {
+        const [_, eliminateId] = this.orders[0];
+        lowId = eliminateId;
+      } else {
+        const { orders, } = this;
+        for (let i = 0; i < orders.length; i += 1) {
+          const order = orders[i];
+          const [_, eliminateId] = order;
+          if (!candidates.includes(eliminateId)) {
+            lowId = eliminateId;
+            break;
+          }
+        }
+      }
+      candidates.push(lowId);
     }
+    await this.exchangeContent(highId, lowId);
     return [highId, lowId];
   }
 
@@ -866,13 +892,15 @@ class Table {
         this.full = false;
         const mappings = [];
         const exchangeRecords = [];
+        this.candidates = [];
         for (let i = max; i <= r; i += 1) {
           const mapping = await this.exchangeHighIndex(i);
           const [_, id] = mapping;
-          let [record] = await this.select([id, id], filters, arrange, false);
+          const [record] = await this.select([id, id], filters, arrange, false);
           exchangeRecords.push(record);
           mappings.push(mapping);
         }
+        delete this.candidates;
         if (this.mappings === undefined) {
           this.mappings = mappings;
         } else {
@@ -1199,6 +1227,7 @@ class Table {
           if (index > r1 && index < l2) {
             pointer = i + 1;
             const min = Math.min(right, l2);
+            const max = Math.max(index, r1)
             const section = [index, min];
             if (l2 <= right) {
               index = min;
@@ -1206,7 +1235,21 @@ class Table {
             ans.push(section);
             sections.splice(i + 1, 0, section);
             this.updateAverageMiddle(i + 1, sections);
-            jumps[r1 + 1] = [l2 - 1, i];
+            jumps[max] = [min - 1, i];
+            break;
+          }
+          if (index > r2 && index < l1) {
+            pointer = i + 1;
+            const min = Math.min(right, l1);
+            const max = Math.max(index, r2)
+            const section = [index, min];
+            if (l1 <= right) {
+              index = min;
+            }
+            ans.push(section);
+            sections.splice(i + 1, 0, section);
+            this.updateAverageMiddle(i + 1, sections);
+            jumps[max] = [min - 1, i];
             break;
           }
         }

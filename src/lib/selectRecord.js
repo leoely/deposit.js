@@ -68,7 +68,7 @@ export default function selectRecord(type, connection, tb, section, filters) {
     throw new Error('[Error] The parameter is a array type.');
   } else {
     const [l, r] = section;
-    if (l > r || r < l) {
+    if (l > r) {
       throw new Error('[Error] The left value of the interval cannot be greater than the right value.');
     }
   }
