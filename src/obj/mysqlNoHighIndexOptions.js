@@ -15,7 +15,7 @@ const connection = mysql.createPool({
 const options = {
   type: 'mysql',
   connection,
-  memorySafeLine: 50,
+  memorySafeLine: 46,
 };
 
 export default options;

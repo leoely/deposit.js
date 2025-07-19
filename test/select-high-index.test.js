@@ -30,6 +30,7 @@ describe('[Class] Select high index test cases;', () => {
     const users7 = await global_users_tb.select([1, 2], ['id', 'gender']);
     expect(JSON.stringify(users7)).toMatch('[{\"id\":1,\"gender\":1},{\"id\":2,\"gender\":1}]');
     const users8 = await global_users_tb.select([28, 32]);
+    expect(JSON.stringify(users8)).toMatch('[{\"name\":\"lsla\",\"age\":49,\"country\":\"america\",\"id\":28,\"gender\":0,\"city\":\"long beach\"},{\"name\":\"poppy\",\"age\":58,\"country\":\"america\",\"id\":29,\"gender\":0,\"city\":\"oakland\"},{\"name\":\"susan\",\"age\":39,\"country\":\"america\",\"id\":0,\"gender\":0,\"city\":\"minneapolis\"},{\"name\":\"abigail\",\"age\":29,\"country\":\"america\",\"id\":2,\"gender\":0,\"city\":\"tulsa\"},{\"name\":\"elizabeth\",\"age\":58,\"country\":\"america\",\"id\":16,\"gender\":0,\"city\":\"bakeersfield\"}]');
     const mappings1 = global_users_tb.getMappings();
     for (let i = 0; i < mappings1.length; i += 1) {
       const [highId, lowId] = mappings1[i];
@@ -40,7 +41,7 @@ describe('[Class] Select high index test cases;', () => {
     const users9 = await global_users_tb.select([0, 34], ['name']);
     expect(JSON.stringify(users9)).toMatch('[{\"name\":\"james\"},{\"name\":\"ovlier\"},{\"name\":\"thomas\"},{\"name\":\"david\"},{\"name\":\"joseph\"},{\"name\":\"william\"},{\"name\":\"michael\"},{\"name\":\"george\"},{\"name\":\"alexander\"},{\"name\":\"john\"},{\"name\":\"taylor\"},{\"name\":\"emily\"},{\"name\":\"emma\"},{\"name\":\"particia\"},{\"name\":\"elizebeth\"},{\"name\":\"bethany\"},{\"name\":\"samantha\"},{\"name\":\"patricia\"},{\"name\":\"jacob\"},{\"name\":\"kyle\"},{\"name\":\"liam\"},{\"name\":\"noah\"},{\"name\":\"damian\"},{\"name\":\"reece\"},{\"name\":\"kyle\"},{\"name\":\"noah\"},{\"name\":\"tracy\"},{\"name\":\"amelia\"},{\"name\":\"lsla\"},{\"name\":\"poppy\"},{\"name\":\"susan\"},{\"name\":\"abigail\"},{\"name\":\"elizabeth\"},{\"name\":\"lsabella\"},{\"name\":\"mia\"}]');
     const mappings2 = global_users_tb.getMappings();
-    for (let i = 0; i < mappings2.length; i += 1) {
+    for (let i = mappings2.length - 1; i >= 0; i -= 1) {
       const [highId, lowId] = mappings2[i];
       await global_users_tb.exchangeContent(highId, lowId);
     }
@@ -62,7 +63,7 @@ describe('[Class] Select high index test cases;', () => {
     const users13 = await global_users_tb.select([37, 39]);
     expect(JSON.stringify(users13)).toMatch('[{\"id\":30,\"name\":\"wendy\",\"age\":34,\"gender\":0,\"city\":\"greensboro\",\"country\":\"america\"},{\"id\":31,\"name\":\"charlie\",\"age\":58,\"gender\":1,\"city\":\"portland\",\"country\":\"america\"},{\"id\":32,\"name\":\"connor\",\"age\":28,\"gender\":1,\"city\":\"detroit\",\"country\":\"america\"}]');
     const mappings4 = global_users_tb.getMappings();
-    for (let i = 0; i < mappings4.length; i += 1) {
+    for (let i = mappings4.length - 1; i >= 0; i -= 1) {
       const [highId, lowId] = mappings4[i];
       await global.users.tb.exchangeContent(highId, lowId);
     }

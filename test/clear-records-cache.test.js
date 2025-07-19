@@ -6,7 +6,7 @@ beforeAll(() => {
   global.users.tb = new Users();
 });
 
-describe('[Class] Clear records cache test case;', () => {
+describe('[Class] Clear records cache test cases;', () => {
   test('Select first arbitrarliy record;', async () => {
     const users = await global.users.tb.select([2, 8], ['age', 'city', 'country'], true);
     expect(JSON.stringify(users)).toMatch('[{\"age\":23,\"city\":\"florence\",\"country\":\"america\"},{\"age\":32,\"city\":\"walpi\",\"country\":\"america\"},{\"age\":23,\"city\":\"winslow\",\"country\":\"america\"},{\"age\":33,\"city\":\"helena\",\"country\":\"america\"},{\"age\":53,\"city\":\"morrilton\",\"country\":\"america\"},{\"age\":23,\"city\":\"arcadia\",\"country\":\"america\"},{\"age\":25,\"city\":\"coronado\",\"country\":\"america\"}]');

@@ -6,7 +6,7 @@ beforeAll(() => {
   global.users.tb = new Users();
 });
 
-describe('[Class] Arrange pointer test case;', () => {
+describe('[Class] Arrange pointer test cases;', () => {
   test('Select first arbitrarliy record;', async () => {
     const users = await global.users.tb.select([1, 6], ['name', 'country'], true);
     expect(JSON.stringify(users)).toMatch('[{\"name\":\"ovlier\",\"country\":\"america\"},{\"name\":\"thomas\",\"country\":\"america\"},{\"name\":\"david\",\"country\":\"america\"},{\"name\":\"joseph\",\"country\":\"america\"},{\"name\":\"william\",\"country\":\"america\"},{\"name\":\"michael\",\"country\":\"america\"}]');

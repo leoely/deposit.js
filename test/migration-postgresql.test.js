@@ -12,7 +12,7 @@ beforeAll(async () => {
   global.noHighIndexUsers.tb = new Users();
 });
 
-describe('[class] migrating postgresql test case;', () => {
+describe('[class] migrating postgresql test cases;', () => {
   test('Insert arbitrarliy records;', async () => {
     const global_noHighIndexUsers_tb = global.noHighIndexUsers.tb;
     await global_noHighIndexUsers_tb.insert([

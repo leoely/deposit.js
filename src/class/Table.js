@@ -582,12 +582,17 @@ class Table {
     }
   }
 
-  async deleteExchange(id, total) {
+  async deleteExchange(id, total, mem) {
     if (!Number.isInteger(id)) {
       throw new Error('[Error] The parameter id should be of integer type.');
     }
     if (!Number.isInteger(total)) {
       throw new Error('[Error] The parameter total should be of integer type.');
+    }
+    if (mem !== undefined) {
+      if (typeof mem !== 'boolean') {
+        throw new Error('[Error] The parameter mem should be of boolean type.');
+      }
     }
     const {
       options: {
@@ -597,17 +602,21 @@ class Table {
     } = this;
     if (id === total - 1) {
       const { tb, } = this;
-      await deleteRecord(type, connection, tb, id);
+      if (mem !== true) {
+        await deleteRecord(type, connection, tb, id);
+      }
       this.deleteDataById(id);
       this.outOfOrder = true;
       this.full = false;
     } else {
-      const { tb, } = this;
-      const records = await selectRecord(type, connection, tb, [total - 1, total - 1]);
-      const record = records[0];
-      await deleteRecord(type, connection, tb, total - 1);
-      record.id = id;
-      await updateRecord(type, connection, tb, record);
+      if (mem !== true) {
+        const { tb, } = this;
+        const records = await selectRecord(type, connection, tb, [total - 1, total - 1]);
+        const record = records[0];
+        await deleteRecord(type, connection, tb, total - 1);
+        record.id = id;
+        await updateRecord(type, connection, tb, record);
+      }
       this.deleteDataById(total - 1);
       this.outOfOrder = true;
       this.full = false;
@@ -626,10 +635,20 @@ class Table {
           sections.forEach((s, i) => {
             const [l, r] = s;
             if (id === l) {
-              sections[i] = [l + 1, r];
+              if (r - l === 0) {
+                sections.splice(i, 1);
+                delete jumps[id];
+              } else {
+                sections[i] = [l + 1, r];
+              }
             }
             if (id === r) {
-              sections[i] = [l, r - 1];
+              if (r - l === 0) {
+                sections.splice(i, 1);
+                delete jumps[id];
+              } else {
+                sections[i] = [l, r - 1];
+              }
             }
             if (id > l && id < r) {
               sections.splice(i, 1, [l, id - 1], [id + 1, r]);
@@ -640,25 +659,68 @@ class Table {
           });
         }
       });
-      datas[id] = undefined;
-      const { counts, } = this;
+    } else {
+      this.dealEmptySlot(id);
+    }
+    datas[id] = undefined;
+    const { counts, } = this;
+    if (counts[id] !== undefined) {
       counts[id] = 0;
-      const { length, } = counts;
-      if (id === length) {
-        const {
-          options: {
-            memorySafeLine,
-          },
-        } = this;
-        const newLength = length - 1;
-        if (newLength >= memorySafeLine) {
-          this.full = true;
-        } else {
-          this.full = false;
-        }
+    } else {
+      counts.splice(id, 1);;
+    }
+    const { length, } = counts;
+    if (id === length) {
+      const {
+        options: {
+          memorySafeLine,
+        },
+      } = this;
+      const newLength = length - 1;
+      if (newLength >= memorySafeLine) {
+        this.full = true;
       } else {
         this.full = false;
       }
+    } else {
+      this.full = false;
+    }
+  }
+
+  // @FIXME
+  dealEmptySlot(id) {
+    const { hash, columns, } = this;
+    if (Array.isArray(columns)) {
+      columns.forEach((k) => {
+        if (hash[k] && hash[k].type === 's') {
+          const { sections, jumps, } = hash[k];
+          sections.forEach((s, i) => {
+            const [l, r] = s;
+            if (id === l) {
+              if (r - l === 0) {
+                sections.splice(i, 1);
+                delete jumps[id];
+              } else {
+                sections[i] = [l + 1, r];
+              }
+            }
+            if (id === r) {
+              if (r - l === 0) {
+                sections.splice(i, 1);
+                delete jumps[id];
+              } else {
+                sections[i] = [l, r - 1];
+              }
+            }
+            if (id > l && id < r) {
+              sections.splice(i, 1, [l, id - 1], [id + 1, r]);
+              delete jumps[id];
+              jumps[l] = [id - 1, i];
+              jumps[id + 1] = [r -1, i + 1];
+            }
+          });
+        }
+      });
     }
   }
 
@@ -743,9 +805,14 @@ class Table {
     await this.update(highRecord);
   }
 
-  async exchangeHighIndex(highId) {
+  async exchangeHighIndex(highId, mem) {
     if (!Number.isInteger(highId)) {
       throw new Error('[Error] The parameter highId should be of integer.');
+    }
+    if (mem !== undefined) {
+      if (typeof mem !== 'boolean') {
+        throw new Error('[Error] The parameter mem should be of boolean type.');
+      }
     }
     const {
       full,
@@ -759,15 +826,15 @@ class Table {
           },
           counts,
         } = this;
-        if ((counts.length - 1) < memorySafeLine) {
-          mapping = await this.exchangeNotFull(highId);
+        if (counts.length - 1 < memorySafeLine - 1) {
+          mapping = await this.exchangeNotFull(highId, mem);
         } else {
-          mapping = await this.exchangeFull(highId);
+          mapping = await this.exchangeFull(highId, mem);
         }
         break;
       }
       case false:
-        mapping = await this.exchangeNotFull(highId);
+        mapping = await this.exchangeNotFull(highId, mem);
         break;
       default:
         throw new Error('[Error] The internal variable is full of abnormal values.');
@@ -775,7 +842,7 @@ class Table {
     return mapping;
   }
 
-  async exchangeNotFull(highId) {
+  async exchangeNotFull(highId, mem) {
     if (!Number.isInteger(highId)) {
       throw new Error('[Error] The parameter highId should be of integer.');
     }
@@ -804,7 +871,7 @@ class Table {
           },
           counts,
         } = this;
-        if (counts.length >= memorySafeLine) {
+        if (counts.length - 1  >= memorySafeLine - 1) {
           return this.exchangeFull(highId);
         } else {
           emptyId = length - 1 + 1;
@@ -816,11 +883,13 @@ class Table {
         emptyId = length - 1 + 1;
       }
     }
-    await this.exchangeContent(highId, emptyId);
+    if (mem !== true) {
+      await this.exchangeContent(highId, emptyId);
+    }
     return [highId, emptyId];
   }
 
-  async exchangeFull(highId) {
+  async exchangeFull(highId, mem) {
     if (!Number.isInteger(highId)) {
       throw new Error('[Error] The parameter highId should be of integer.');
     }
@@ -847,7 +916,10 @@ class Table {
       }
       candidates.push(lowId);
     }
-    await this.exchangeContent(highId, lowId);
+    if (mem !== true) {
+      await this.exchangeContent(highId, lowId);
+      this.full = true;
+    }
     return [highId, lowId];
   }
 
@@ -900,7 +972,14 @@ class Table {
         const exchangeRecords = [];
         this.candidates = [];
         for (let i = max; i <= r; i += 1) {
-          const mapping = await this.exchangeHighIndex(i);
+          let mapping;
+          if (this instanceof Table) {
+            mapping = await this.exchangeHighIndex(i);
+          } else if (this instanceof DistribTable) {
+            mapping = await this.exchangeHighIndexDistrib(i);
+          } else {
+            throw new Error('[Error] Unexpected type encountered during query.');
+          }
           const [_, id] = mapping;
           const [record] = await this.select([id, id], filters, arrange, false);
           exchangeRecords.push(record);
@@ -1112,6 +1191,12 @@ class Table {
       }
       this.countSection(section);
     }
+    records.forEach((record, i) => {
+      if (record === undefined) {
+        const [l, r] = section;
+        this.deleteDataById(l + i)
+      }
+    });
     return records;
   }
 

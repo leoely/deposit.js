@@ -1,8 +1,8 @@
 {
   "name": "deposit.js",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "The javascript database cache libray.",
-  "main": "./dist/class/Table.js",
+  "main": "./dist/index.js",
   "repository": "git@github.com:leobrad/records.js.git",
   "author": "Leo Brad",
   "license": "MIT",
@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "gulp": "^4.0.2",
+    "manner.js": "^1.0.27",
     "mysql2": "^3.5.2",
     "pg": "^8.11.2"
   }
