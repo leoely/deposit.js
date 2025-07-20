@@ -5,7 +5,7 @@ import {
 } from 'manner.js/server';
 import Table from './Table';
 
-function  getBinBuf(params) {
+function getBinBuf(params) {
   if (!Array.isArray(params)) {
     throw new Error('[Error] The params parameter should be an array type.');
   }
@@ -49,9 +49,28 @@ class DistribTable extends Table {
       return distribTable.setUpClients();
     });
     await Promise.all(serverPromises.concat(clientsPromises));
-    distribTables.forEach((distribTable) => {
-      return distribTable.setUpConnections();
+  }
+
+  static async join(newDistribTables, originDistribTables) {
+    if (!Array.isArray(newDistribTables)) {
+      throw new Error('[Error] The new distributed tables should beo fo array type..');
+    }
+    if (!Array.isArray(originDistribTables)) {
+      throw new Error('[Error] The origin distributed tables should be of array type.');
+    }
+    const serverPromises = newDistribTables.map((distribTable) => {
+      return distribTable.setUpServer();
     });
+    const clientsPromises = newDistribTables.map((distribTable) => {
+      return distribTable.setUpClients();
+    });
+    const addPromises = originDistribTables.map((originDistribTable) => {
+      return newDistribTables.map((newDistribTable) => {
+        const { ip, port, } = newDistribTable;
+        originDistribTable.addTable(ip, port);
+      });
+    }).flat();
+    await Promise.all(serverPromises.concat(clientsPromises).concat(addPromises));
   }
 
   static async release(distribTables) {
@@ -84,6 +103,33 @@ class DistribTable extends Table {
     if (!Array.isArray(allTables)) {
       throw new Error('[Error] Parameter allTables needs to be of array type.');
     }
+    const ipAddresses = getOwnIpAddresses();
+    const locations = [];
+    ipAddresses.forEach((ipAddress) => {
+      const { ipv4, ipv6, } = ipAddress;
+      locations.push(ipv4 + ':' + port);
+      locations.push('[' + ipv6 + ']:' + port);
+    });
+    const hash = {};
+    const tables = allTables.filter((table) => {
+      const [_, port] = table;
+      if (hash[port] === undefined) {
+        hash[port] = true;
+      } else {
+        throw new Error('[Error] A port can only be bound to one table');
+      }
+      let flag = true;
+      for (let i = 0; i< locations.length ; i += 1) {
+        const location = locations[i];
+        if (table.join(':') === location) {
+          const [ip] = table;
+          this.ip = ip;
+          flag = false;
+          break;
+        }
+      }
+      return flag;
+    });
     this.tables = allTables;
   }
 
@@ -167,6 +213,9 @@ class DistribTable extends Table {
     this.connections = [];
     this.server = await new Promise((resolve, reject) => {
       const server = net.createServer((connection) => {
+        connection.on('data', (buf) => {
+          this.dealConnectionBuf(buf, connection);
+        });
         count += 1;
         this.connections.push(connection);
         if (count === length) {
@@ -202,14 +251,6 @@ class DistribTable extends Table {
     this.clients = await Promise.all(clientPromises);
     const { client, } = this;
     return client;
-  }
-
-  setUpConnections() {
-    this.getConnections().forEach((connection) => {
-      connection.on('data', (buf) => {
-        this.dealConnectionBuf(buf, connection);
-      });
-    });
   }
 
   dealConnectionBuf(buf, connection) {
@@ -275,9 +316,9 @@ class DistribTable extends Table {
           throw new Error('[Error] The parameters lengths do not match convertion.');
         }
         const [highId] = params;
-        this.exchangeHighIndex(Number(highId), true);
+        const mapping = this.exchangeHighIndex(Number(highId), true);
         connection.write('ack');
-        break;
+        return mapping;
       }
       default:
         throw new Error('[Error] The code value should be in the range [0, 5]');
@@ -298,6 +339,23 @@ class DistribTable extends Table {
         break;
       }
     }
+  }
+
+  async addTable(ip, port) {
+    return new Promise((resolve, reject) => {
+      const client = net.createConnection(port, ip, () => {
+        client.ip = ip;
+        client.port = port;
+        resolve(client);
+      });
+      client.on('close', () => {
+        const { ip, port, } = client;
+        this.removeTable(ip, port);
+      });
+      const { tables, clients, } = this;
+      tables.push([ip, port]);
+      clients.push(client);
+    });
   }
 
   checkCombine() {

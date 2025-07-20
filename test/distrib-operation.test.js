@@ -27,7 +27,7 @@ describe('[Class] Distributed operation test cases;', () => {
     await new Promise((resolve, reject) => {
       setTimeout(() => {
         resolve();
-      }, 1000);
+      }, 1100);
     });
     const global_users_tb1 = global.users.tb1;
     const global_users_tb2 = global.users.tb2;
@@ -94,6 +94,29 @@ describe('[Class] Distributed operation test cases;', () => {
     expect(JSON.stringify(users19)).toMatch('[{\"id\":0,\"name\":\"lily\",\"age\":83,\"gender\":0,\"city\":\"atlanta\",\"country\":\"america\"}]');
     const users20 = await global_users_tb2.select([0, 0]);
     expect(JSON.stringify(users20)).toMatch('[{\"id\":0,\"name\":\"lily\",\"age\":83,\"gender\":0,\"city\":\"atlanta\",\"country\":\"america\"}]');
-    await DistribTable.release([global_users_tb1, global_users_tb2]);
+    const mappings = global_users_tb1.getMappings();
+    for (let i = mappings.length - 1; i >= 0; i -= 1) {
+      const [highId, lowId] = mappings[i];
+      await global_users_tb2.exchangeContentDistrib(highId, lowId);
+    }
+
+    const [ipAddress] = getOwnIpAddresses();
+    const { ipv4, } = ipAddress;
+    const tables = [
+      [ipv4, 8000],
+      [ipv4, 8001],
+        [ipv4, 8002],
+    ];
+    global.users.tb3 = new DistribTable('users', mysqlNoHighIndexOptions, 8002, tables);
+    const global_users_tb3 = global.users.tb3;
+    await DistribTable.join([global_users_tb3], [global_users_tb1, global_users_tb2]);
+    await global_users_tb3.updateDistrib({ id: 39, name: 'zach', age: 34, gender: 1, city: 'washington', country: 'america', });
+    const users21 = await global_users_tb1.select([39, 39]);
+    expect(JSON.stringify(users21)).toMatch('[{\"id\":39,\"name\":\"zach\",\"age\":34,\"gender\":1,\"city\":\"washington\",\"country\":\"america\"}]');
+    const users22 = await global_users_tb2.select([39, 39]);
+    expect(JSON.stringify(users22)).toMatch('[{\"id\":39,\"name\":\"zach\",\"age\":34,\"gender\":1,\"city\":\"washington\",\"country\":\"america\"}]');
+    const users23 = await global_users_tb3.select([39, 39]);
+    expect(JSON.stringify(users23)).toMatch('[{\"id\":39,\"name\":\"zach\",\"age\":34,\"gender\":1,\"city\":\"washington\",\"country\":\"america\"}]');
+    await DistribTable.release([global_users_tb1, global_users_tb2, global_users_tb3]);
   });
 });
