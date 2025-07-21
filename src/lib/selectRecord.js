@@ -1,3 +1,5 @@
+import Table from '~/class/Table';
+
 function getLimit(section) {
   if (section !== undefined) {
     const limit = section.filter((e) => e !== undefined).map((k, i) => {
@@ -26,7 +28,7 @@ function getOffsetLimit(section) {
   }
 }
 
-function selectRecordInMysql(connection, tb, section, filters) {
+function selectRecordInMysql(connection, tb, section, filters, instance) {
   return new Promise((resolve, reject) => {
     let sql;
     if (filters === undefined) {
@@ -38,6 +40,9 @@ function selectRecordInMysql(connection, tb, section, filters) {
         if (error) {
           reject(error);
         } else {
+          if (instance !== undefined) {
+            instance.sqls.push(sql);
+          }
           resolve(results);
         }
       }
@@ -45,7 +50,7 @@ function selectRecordInMysql(connection, tb, section, filters) {
   });
 }
 
-function selectRecordInPostgresql(connection, tb, section, filters) {
+function selectRecordInPostgresql(connection, tb, section, filters, instance) {
   return connection.then((conn) => {
     let sql;
     if (filters === undefined) {
@@ -53,11 +58,16 @@ function selectRecordInPostgresql(connection, tb, section, filters) {
     } else {
       sql = 'SELECT ' + filters.join(',') + ' FROM ' + tb +  ' ORDER BY id ' + getOffsetLimit(section);
     }
-    return conn.query(sql).then((res) => res.rows);
+    return conn.query(sql).then((res) => {
+      if (instance !== undefined) {
+        instance.sqls.push(sql);
+      }
+      return res.rows;
+    });
   });
 }
 
-export default function selectRecord(type, connection, tb, section, filters) {
+export default function selectRecord(type, connection, tb, section, filters, instance) {
   if (typeof type !== 'string') {
     throw new Error('[Error] The parameter type is a string type.');
   }
@@ -85,9 +95,14 @@ export default function selectRecord(type, connection, tb, section, filters) {
       throw new Error('[Error] The parameter filters should be of array type.');
     }
   }
+  if (instance !== undefined) {
+    if (!(instance instanceof Table)) {
+      throw new Error('[Error] Parameter instance should be for table type.');
+    }
+  }
   if (type === 'mysql') {
-    return selectRecordInMysql(connection, tb, section, filters);
+    return selectRecordInMysql(connection, tb, section, filters, instance);
   } else {
-    return selectRecordInPostgresql(connection, tb, section, filters);
+    return selectRecordInPostgresql(connection, tb, section, filters,  instance);
   }
 }

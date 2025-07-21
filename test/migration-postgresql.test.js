@@ -1,6 +1,6 @@
 import { describe, expect, test, } from '@jest/globals';
 import Users from '~/class/table/PostgresqlNoHighIndexUsers';
-import global from '~/obj/global';
+import global from '~/obj/testGlobal';
 
 const first = 41;
 const second = 42;

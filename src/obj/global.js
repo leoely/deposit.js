@@ -1,8 +1,9 @@
+import Fulmination from 'Fulmination';
+
+const fulmination = new Fulmination();
+
 const global = {
-  users: {},
-  noHighIndexUsers: {},
-  postgresqlUsers: {},
-  postgresqlNoHighIndexUsers: {},
+  fulmination,
 };
 
 export default global;

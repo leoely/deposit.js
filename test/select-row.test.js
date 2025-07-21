@@ -1,6 +1,6 @@
 import { describe, expect, test, } from '@jest/globals';
 import Users from '~/class/table/MysqlUsers';
-import global from '~/obj/global';
+import global from '~/obj/testGlobal';
 
 beforeAll(() => {
   global.users.tb = new Users();

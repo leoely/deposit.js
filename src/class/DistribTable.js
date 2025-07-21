@@ -2,6 +2,7 @@ import net from 'net';
 import {
   getOwnIpAddresses,
   nonZeroByteArray,
+  getGTMNowString,
 } from 'manner.js/server';
 import Table from './Table';
 
@@ -30,6 +31,10 @@ function getBinBuf(params) {
   });
   const buf = Buffer.from(pbytes.flat());
   return buf;
+}
+
+function formatTables(tables) {
+  return '[' + tables.join(', ') + ']';
 }
 
 class DistribTable extends Table {
@@ -133,6 +138,44 @@ class DistribTable extends Table {
     this.tables = allTables;
   }
 
+  getTables() {
+    const { tables, } = this;
+    if (!Array.isArray(tables)) {
+      throw new Error('[Error] The status of the tables is abnormal.');
+    }
+    return tables;
+  }
+
+  outputDistribOperate(operate) {
+    if (typeof operate !== 'string') {
+      throw new Error('[Error] The parameter operate must be of string type.');
+    }
+    const {
+      tb,
+      options: {
+        debug,
+      },
+      constructor: {
+        name,
+      },
+    } = this;
+    operate = operate.split(' ').map((word) => {
+      return word[0].toUpperCase() + word.substring(1, word.length);
+    }).join(' ');
+    const tables = this.getTables();
+    if (debug === true) {
+      const {
+        fulmination,
+      } = this;
+      fulmination.scan(`
+        (+) bold: "&"& (+) bold: * Class "[ (+) black; bgWhite: ` + name + `(+) bold: "] Operate "[ (+) black; bgWhite: ` + operate + `(+) bold: "] Successfully executed and completed. 2&
+        (+) bold: "[ (+) black; bgWhite: Topology (+) bold: "] ++ * (+) underline: "b` + formatTables(tables) + `" &
+        (+) bold: "[ (+) black; bgWhite: Date (+) bold: "] @@ * (+) underline: "b` + getGTMNowString() + `" 2&
+      `);
+    }
+    this.appendToLog('Class:(' + name + ') ████ & ████ ' + 'Operate:(' + operate + ') ████ & ████ ' + 'Topology:' + formatTables(tables));
+  }
+
   getAckPromises(callback) {
     if (typeof callback !== 'function') {
       throw new Error('[Error] Parameter callback should be a funciton type.');
@@ -229,6 +272,8 @@ class DistribTable extends Table {
       server.listen(port);
     });
     const { server, } = this;
+    this.checkMemory();
+    this.outputDistribOperate('setUp server');
     return server;
   }
 
@@ -250,6 +295,8 @@ class DistribTable extends Table {
     });
     this.clients = await Promise.all(clientPromises);
     const { client, } = this;
+    this.checkMemory();
+    this.outputDistribOperate('setUp client');
     return client;
   }
 
@@ -356,6 +403,7 @@ class DistribTable extends Table {
       tables.push([ip, port]);
       clients.push(client);
     });
+    this.checkMemory();
   }
 
   checkCombine() {
@@ -368,6 +416,7 @@ class DistribTable extends Table {
   async insertDistrib(cnt) {
     this.checkCombine();
     await this.insert(cnt);
+    this.outputDistribOperate('insert distrib');
   }
 
   async deleteExchangeDistrib(id, total) {
@@ -377,6 +426,7 @@ class DistribTable extends Table {
       client.write(getBinBuf([0, id, total]));
     });
     await Promise.all(ackPromises);
+    this.outputDistribOperate('deleteExchange distrib');
   }
 
   async deleteAllDistrib(ids) {
@@ -384,6 +434,7 @@ class DistribTable extends Table {
       const id = ids[i];
       await deleteDistrib(id);
     }
+    this.outputDistribOperate('deleteAll distrib');
   }
 
   async deleteDistrib(id) {
@@ -393,6 +444,7 @@ class DistribTable extends Table {
       client.write(getBinBuf([1, id]));
     });
     await Promise.all(ackPromises);
+    this.outputDistribOperate('delete distrib');
   }
 
   async updateDistrib(obj) {
@@ -402,6 +454,7 @@ class DistribTable extends Table {
       client.write(getBinBuf([2, obj.id]))
     });
     await Promise.all(ackPromises);
+    this.outputDistribOperate('update distrib');
   }
 
   async exchangeContentDistrib(id1, id2) {
@@ -411,6 +464,7 @@ class DistribTable extends Table {
       client.write(getBinBuf([3, id1, id2]))
     });
     await Promise.all(ackPromises);
+    this.outputDistribOperate('exchangeContent distrib');
   }
 
   async exchangeHighIndexDistrib(highId) {
@@ -420,6 +474,7 @@ class DistribTable extends Table {
       client.write(getBinBuf([4, highId]))
     });
     await Promise.all(ackPromises);
+    this.outputDistribOperate('exchangeHighIndex distrib');
     return mapping;
   }
 }

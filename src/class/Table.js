@@ -1,8 +1,19 @@
 import os from 'os';
+import {
+  getGTMNowString,
+  checkLogPath,
+  appendToLog,
+  logOutOfMemory,
+} from 'manner.js/server';
 import deleteRecord from '~/lib/deleteRecord';
 import insertRecord from '~/lib/insertRecord';
 import selectRecord from '~/lib/selectRecord';
 import updateRecord from '~/lib/updateRecord';
+import global from '~/obj/global';
+
+const {
+  fulmination,
+} = global;
 
 function getLength(section) {
   if (!Array.isArray(section)) {
@@ -57,21 +68,38 @@ function deepCopyRecord(l, r, o, ans, datas, filters) {
   }
 }
 
-function generateBareJump(sections, i, jumps) {
+function generateBareJump(filter, sections, i, average, jumps) {
+  if (typeof filter !== 'string') {
+    throw new Error('[Error] Parameter filter should be of string type.');
+  }
   if (!Array.isArray(sections)) {
     throw new Error('[Error] The parameter sections should be an array type.');
   }
   if (!Number.isInteger(i)) {
-    throw new Error('[Error] Parameter should be of integer type.');
+    throw new Error('[Error] Parameter i should be of integer type.');
+  }
+  if (typeof average !== 'object') {
+    throw new Error('[Error] Parameter average should based on object type..');
   }
   if (!Array.isArray(jumps)) {
     throw new Error('[Error] The parameter jumps should be an array type.');
   }
   const section = sections[i - 1];
+  const [l2] = sections[i];
+  const {
+    bare,
+  } = average;
   if (section !== undefined) {
     const [l1, r1] = section;
-    const [l2] = sections[i];
-    jumps[r1 + 1] = [l2 - 1, i - 1];
+    if (r1 + 1 < l2 - 1) {
+      jumps[r1 + 1] = [l2 - 1, i - 1];
+      average.bare = (bare + getLength([r1 + 1, l2 - 1])) / 2;
+    }
+  } else {
+    if (l2 - 1 >= 0 && i - 1 >= 0) {
+      jumps[0] = [l2 - 1, i - 1];
+    }
+    average.bare = (bare + getLength([0, l2 - 1])) / 2;
   }
 }
 
@@ -164,30 +192,186 @@ class Table {
       throw new Error('[Error] The parameter tb should be of string type.');
     }
     this.tb = tb;
+    const defaultOptions = {
+      debug: false,
+      memorySafeLine: 1000_000,
+      logLevel: 0,
+      logPath: '/var/log/deposit.js',
+    };
+    this.options = Object.assign(defaultOptions, options);
+    this.dealOptions(this.options);
     this.hash = {};
     this.datas = [];
-    this.average = {
-      bare: 0,
-      occupy: 0,
-    };
-    this.dealOptions(options);
-    this.options = options;
+    this.average = {};
     this.counts = [];
     this.outOfOrder = true;
     this.full = true;
+    this.sqls = [];
+    if (this.hasSqls()) {
+      this.sqls = [];
+    }
+    const {
+      options: {
+        logPath,
+        debug,
+      }
+    } = this;
+    checkLogPath(logPath);
+    if (debug === true) {
+      this.fulmination = fulmination;
+      fulmination.scan(`
+      [+] bold:
+      |
+      | **  ██████╗░███████╗██████╗░░█████╗░░██████╗██╗████████╗░░░░░░░░██╗░██████╗
+      | **  ██╔══██╗██╔════╝██╔══██╗██╔══██╗██╔════╝██║╚══██╔══╝░░░░░░░░██║██╔════╝
+      | **  ██║░░██║█████╗░░██████╔╝██║░░██║╚█████╗░██║░░░██║░░░░░░░░░░░██║╚█████╗░
+      | **  ██║░░██║██╔══╝░░██╔═══╝░██║░░██║░╚═══██╗██║░░░██║░░░░░░██╗░░██║░╚═══██╗
+      | **  ██████╔╝███████╗██║░░░░░╚█████╔╝██████╔╝██║░░░██║░░░██╗╚█████╔╝██████╔╝
+      | **  ╚═════╝░╚══════╝╚═╝░░░░░░╚════╝░╚═════╝░╚═╝░░░╚═╝░░░╚═╝░╚════╝░╚═════╝░
+      `);
+      const {
+        constructor: {
+          name,
+        },
+      } = this;
+      if (/Distrib/.test(name)) {
+        fulmination.scan(`
+          [+] bold:
+          |
+          | ** - The "[distributed"] table is initialized successfully.
+          | ** - Related "[distributed"] operations cans be performed.
+          |
+        `);
+      } else {
+        fulmination.scan(`
+          [+] bold:
+          |
+          | ** - The table is initialized successfully.
+          | ** - Related operations cans be performed.
+          |
+        `);
+      }
+    }
+    this.checkMemory();
+  }
+
+  hasSqls() {
+    let ans = false;
+    const {
+      debug,
+      logLevel,
+    } = this.options;
+    if (debug === true || logLevel === 1) {
+      ans = true;
+    }
+    return ans;
+  }
+
+  appendToLog(content, must) {
+    if (typeof content !== 'string') {
+      throw new Error('[Error] The parameter content must be of string type.');
+    }
+    if (must !== undefined) {
+      if (typeof must !== 'boolean') {
+        throw new Error('[Error] The parameter must should be of boolean type.');
+      }
+    }
+    const {
+      options: {
+        logPath,
+        logLevel,
+      },
+    } = this;
+    if (typeof logPath === 'string') {
+      switch (logLevel) {
+        case 0:
+          if (must === true) {
+            appendToLog(logPath, ' || ████ ' + content + ' ████ ||\n');
+          }
+          break;
+        case 1:
+          appendToLog(logPath, ' || ████ ' + content + ' ████ ||\n');
+          break;
+        default:
+          throw new Error('[Error] The log level does not meet expectations.');
+      }
+    }
+  }
+
+  outputOperate(operate) {
+    if (typeof operate !== 'string') {
+      throw new Error('[Error] The parameter operate must be of string type.');
+    }
+    const {
+      tb,
+      options: {
+        debug,
+      },
+      constructor: {
+        name,
+      },
+    } = this;
+    operate = operate[0].toUpperCase() + operate.substring(1, operate.length);
+    const sqls = this.getSqls();
+    if (debug === true) {
+      const {
+        fulmination,
+      } = this;
+      if (sqls.length === 0) {
+        fulmination.scan(`
+          (+) bold: ":": (+) bold: * Class "[ (+) black; bgWhite: ` + name + `(+) bold: "] Operate "[ (+) black; bgWhite: ` + operate + `(+) bold: "] Successfully executed and completed. 2&
+          (+) bold: "[ (+) black; bgWhite: SQL (+) bold: "] >> * (+) underline: NULL; &
+          (+) bold: "[ (+) black; bgWhite: Date (+) bold: "] @@ * (+) underline: "b ` + getGTMNowString() + `" 2&
+        `);
+      } else {
+        sqls.forEach((sql) => {
+          fulmination.scanAll([
+            [`
+              (+) bold: ":": (+) bold: * Class "[ (+) black; bgWhite: ` + name + `(+) bold: "] Operate "[ (+) black; bgWhite: ` + operate + `(+) bold: "] Successfully executed and completed. 2&
+              (+) bold: "[ (+) black; bgWhite: SQL (+) bold: "] >> * (+) underline:
+            `, 1],
+            [sql + ';', 2],
+            ['(+): &', 0],
+            ['(+) bold: "[ (+) black; bgWhite: Date (+) bold: "] @@ * (+) underline: "b ' + getGTMNowString()  + '" 2&', 1],
+          ]);
+        });
+      }
+    }
+    sqls.forEach((sql) => {
+      this.appendToLog('Class:' + name + ' ████ & ████ ' + 'Operate:' + operate +  ' ████ & ████ ' + 'SQL:' + sql);
+    });
+  }
+
+  getSqls() {
+    const {
+      sqls,
+    } = this;
+    if (!Array.isArray(sqls)) {
+      throw new Error('[Error] Internal data SQL expection.');
+    }
+    this.sqls = [];
+    return sqls;
   }
 
   dealOptions(options) {
     const {
       type,
       connection,
+      debug,
       memorySafeLine,
+      logPath,
+      logLevel,
     } = options;
     if (typeof type !== 'string') {
       throw new Error('[Error] The option type should be a string.');
     }
     if (typeof connection !== 'object') {
       throw new Error('[Error] Option connection should be of type object.');
+    }
+    if (debug !== undefined) {
+      if (typeof debug !== 'boolean') {
+        throw new Error('[Error] Option debug should be of boolean type.');
+      }
     }
     if (memorySafeLine !== undefined) {
       if (!Number.isInteger(memorySafeLine)) {
@@ -196,8 +380,16 @@ class Table {
       if (!(memorySafeLine > 0)) {
         throw new Error('[Error] Option memorySafeLine should be a postive integer.');
       }
-    } else {
-      options.memorySafeLine = 1000_000;
+    }
+    if (logPath !== undefined) {
+      if (typeof logPath !== 'string') {
+        throw new Error('[Error] Option logPath should be of string type.');
+      }
+    }
+    if (logLevel !== undefined) {
+      if (!Number.isInteger(logLevel)) {
+        throw new Error('[Error] Option logLevel should be of integer type.');
+      }
     }
   }
 
@@ -205,17 +397,42 @@ class Table {
     const {
       temporaryMemorySwitch,
     } = this;
+    let freemem = os.freemem();
     if (temporaryMemorySwitch === true) {
-      return false;
+      freemem = 0;
     }
-    const freemem = os.freemem();
     let ans = false;
     if (freemem > 0) {
       ans = true;
     } else {
+      const {
+        options: {
+          debug,
+          logPath,
+        },
+        constructor: {
+          name,
+        },
+      } = this;
+      if (debug === true) {
+        fulmination.scan(`
+          (+) bold: !! (+) bold: * Class "[ (+) black; bgWhite: ` + name + `(+) bold: "] Situation "[ (+) black; bgWhite: Memory  (+) bold: "] Usage exhausted. 2&
+          (+) bold: "[ (+) black; bgWhite: FREEMEM (+) bold: "] !! * (+) underline: Only the remaining ones remain * (+) bold: "[ (+) black; bgWhite: 0 (+) bold: "] &
+          (+) bold: "[ (+) black; bgWhite: Date (+) bold: "] @@ * (+) underline: "b ` + getGTMNowString() + `" 2&
+        `);
+      }
+      logOutOfMemory(logPath, freemem);
     }
     return ans;
   }
+
+  // @FIXME
+  //setTemporaryMemorySwitch(temporaryMemorySwitch) {
+    //if (typeof temporaryMemorySwtich !== 'boolean') {
+      //throw new Error('[Error] Parameter temporaryMemorySwtich should be of boolean type.');
+    //}
+    //this.temporaryMemorySwitch = temporaryMemorySwitch;
+  //}
 
   emptyCache() {
     this.hash = {};
@@ -230,6 +447,7 @@ class Table {
     this.orders = counts.map((e, i) => [e, i]);
     this.orders = radixSort(this.orders);
     this.outOfOrder = false;
+    this.checkMemory();
   }
 
   reduceRecordsCache(count) {
@@ -246,6 +464,7 @@ class Table {
         this.full = false;
       }
       this.outOfOrder = true;
+      this.checkMemory();
     }
   }
 
@@ -330,9 +549,13 @@ class Table {
       counts[i] += 1;
     }
     this.outOfOrdder = true;
+    this.checkMemory();
   }
 
-  updateAverageLast(section, sections) {
+  updateAverageLast(filter, section, sections) {
+    if (typeof filter !== 'string') {
+      throw new Error('[Error] The parameter filter should be string type.');
+    }
     if (!Array.isArray(section)) {
       throw new Error('[Error] The parameter section should be an array type.');
     }
@@ -343,22 +566,28 @@ class Table {
     const s1 = sections[length - 1];
     const s2 = sections[length - 2];
     const v1 = getLength(s1);
+    const average = this.average[filter];
     const {
-      average: {
-        bare,
-        occupy,
-      },
-    } = this;
-    this.average.occupy = (v1 + occupy) / 2;
+      bare,
+      occupy,
+    } = average;
+    average.occupy = (v1 + occupy) / 2;
     if (s2 !== undefined) {
       const [l1, r1] = s1;
       const [l2, r2] = s2;
       const v2 = getLength([r1 + 1, l2 - 1]);
-      this.average.bare = (v1 + bare) / 2;
+      const {
+        jumps,
+      } = this.hash[filter];
+      generateBareJump(filter, sections, length - 2, average, jumps);
+      this.checkMemory();
     }
   }
 
-  updateAverageMiddle(i, sections) {
+  updateAverageMiddle(filter, i, sections) {
+    if (typeof filter !== 'string') {
+      throw new Error('[Error] The parameter filter should be string type.');
+    }
     if (!Number.isInteger(i)) {
       throw new Error('[Error] The parameter i should be of integer type.');
     }
@@ -369,17 +598,41 @@ class Table {
     const s2 = sections[i - 1];
     const v1 = getLength(s1);
     const {
-      average: {
-        bare,
-        occupy,
-      },
-    } = this;
-    this.average.occupy = (v1 + occupy) / 2;
+      bare,
+      occupy,
+    } = this.average[filter];
+    this.average[filter].occupy = (v1 + occupy) / 2;
     if (s2 !== undefined) {
       const [l1, r1] = s1;
       const [l2, r2] = s2;
       const v2 = getLength([r1 + 1, l2 - 1]);
-      this.average.bare = (v1 + bare) / 2;
+      if (v2 > 0) {
+        const {
+          jumps,
+        } = this.hash[filter];
+        jumps[r1 + 1] = [l2 - 1, i];
+        if (bare <= 0) {
+          this.average[filter].bare = (v2 + bare) / 2;
+        } else {
+          this.average[filter].bare = v2 + ((bare * 2 - v1) / 2) / 2;
+        }
+      }
+    }
+  }
+
+  updateAverageDeleteOne(filter) {
+    if (typeof filter !== 'string') {
+      throw new Error('[Error] The parameter filter should be string type.');
+    }
+    const {
+      bare,
+      occupy,
+    } = this.average[filter];
+    if (occupy > 0) {
+      this.average[filter].occupy = (occupy * 2 + 1) / 2;
+    }
+    if (bare > 0) {
+      this.average[filter].bare = (bare * 2 - 1) / 2;
     }
   }
 
@@ -432,7 +685,12 @@ class Table {
     } = this;
     for (let i = 0; i < sections.length; i += 1) {
       const s = sections[i];
-      const records = await selectRecord(type, connection, tb, s, [filter]);
+      let records;
+      if (this.hasSqls()) {
+        records = await selectRecord(type, connection, tb, s, [filter], this);
+      } else {
+        records = await selectRecord(type, connection, tb, s, [filter]);
+      }
       const [l, r] = s;
       if (records.length > 0) {
         for (let i = 0; i <= r - l; i += 1) {
@@ -459,29 +717,29 @@ class Table {
       sections = this.hash[filter].sections;
       let i = 0;
       while (sections[i + 1] !== undefined) {
-        const {
-          average: {
-            bare,
-            occupy,
-          },
-        } = this;
         const [l1, r1] = sections[i];
         const [l2, r2] = sections[i + 1];
-        const v1 = getLength(sections[i]);
-        this.average.occupy = (v1 + occupy) / 2;
-        const v2 = getLength(sections[i + 1]);
-        this.average.occupy = (v2 + occupy) / 2;
-        const v3 = getLength([r1 + 1, l2 - 1]);
-        this.average.bare = (v3 + occupy) / 2;
         if (r1 >= l2 - 1) {
           const min = Math.min(l1, l2);
           const max = Math.max(r1, r2);
           sections.splice(i, 2, [min, max]);
+          const average = this.average[filter];
+          const {
+            bare,
+            occupy,
+          } = average;
+          const v1 = getLength(sections[i]);
+          const v2 = getLength(sections[i + 1]);
+          const v3 = getLength([min, max]);
+          const delta = (v1 + v2 - v3);
+          average[filter].occupy = (occupy * 2 - delta) / 2;
+          const v4 = getLength([r1 + 1, l2 - 1]);
+          average[filter].bare = (bare * 2 + delta) / 2;
           jumps[min] = [max, i];
-          generateBareJump(sections, i, jumps);
+          generateBareJump(filter, sections, i, average, jumps);
         } else {
           i += 1;
-          generateBareJump(sections, i, jumps);
+          generateBareJump(filter, sections, i, average, jumps);
         }
       }
       this.hash[filter].chaotic = false;
@@ -576,10 +834,19 @@ class Table {
       tb,
     } = this;
     if (Array.isArray(cnt)) {
-      await insertRecord(type, connection, tb, cnt);
+      if (this.hasSqls()) {
+        await insertRecord(type, connection, tb, cnt, this);
+      } else {
+        await insertRecord(type, connection, tb, cnt);
+      }
     } else {
-      await insertRecord(type, connection, tb, [cnt])
+      if (this.hasSqls()) {
+        await insertRecord(type, connection, tb, [cnt], this);
+      } else {
+        await insertRecord(type, connection, tb, [cnt]);
+      }
     }
+    this.outputOperate('insert');
   }
 
   async deleteExchange(id, total, mem) {
@@ -603,7 +870,11 @@ class Table {
     if (id === total - 1) {
       const { tb, } = this;
       if (mem !== true) {
-        await deleteRecord(type, connection, tb, id);
+        if (this.hasSqls()) {
+          await deleteRecord(type, connection, tb, id, this);
+        } else {
+          await deleteRecord(type, connection, tb, id);
+        }
       }
       this.deleteDataById(id);
       this.outOfOrder = true;
@@ -611,16 +882,30 @@ class Table {
     } else {
       if (mem !== true) {
         const { tb, } = this;
-        const records = await selectRecord(type, connection, tb, [total - 1, total - 1]);
+        let records;
+        if (this.hasSqls()) {
+          records = await selectRecord(type, connection, tb, [total - 1, total - 1], undefined, this);
+        } else {
+          records = await selectRecord(type, connection, tb, [total - 1, total - 1]);
+        }
         const record = records[0];
-        await deleteRecord(type, connection, tb, total - 1);
+        if (this.hasSqls()) {
+          await deleteRecord(type, connection, tb, total - 1, this);
+        } else {
+          await deleteRecord(type, connection, tb, total - 1);
+        }
         record.id = id;
-        await updateRecord(type, connection, tb, record);
+        if (this.hasSqls()) {
+          await updateRecord(type, connection, tb, record, this);
+        } else {
+          await updateRecord(type, connection, tb, record);
+        }
       }
       this.deleteDataById(total - 1);
       this.outOfOrder = true;
       this.full = false;
     }
+    this.outputOperate('deleteExchange');
   }
 
   deleteDataById(id) {
@@ -629,32 +914,56 @@ class Table {
     }
     const { hash, datas, } = this;
     if (datas[id] !== undefined) {
-      Object.keys(datas[id]).forEach((k) => {
-        if (hash[k].type === 's') {
-          const { sections, jumps, } = hash[k];
+      Object.keys(datas[id]).forEach((f) => {
+        const groove = hash[f];
+        if (groove.type === 's') {
+          const { sections, jumps, } = groove;
           sections.forEach((s, i) => {
             const [l, r] = s;
             if (id === l) {
               if (r - l === 0) {
                 sections.splice(i, 1);
                 delete jumps[id];
+                this.updateAverageDeleteOne(f);
               } else {
                 sections[i] = [l + 1, r];
+                delete jumps[l];
+                jumps[l + 1] = [r - 1, i];
+                const section = sections[i - 1];
+                if (section !== undefined) {
+                  const [_, r1] = section;
+                  if (l + 1 > r1) {
+                    jumps[r1 + 1] = [l, i - 1];
+                  }
+                }
+                this.updateAverageDeleteOne(f);
               }
             }
             if (id === r) {
               if (r - l === 0) {
                 sections.splice(i, 1);
                 delete jumps[id];
+                this.updateAverageDeleteOne(f);
               } else {
                 sections[i] = [l, r - 1];
+                jumps[l] = [r - 2, i];
+                const section = sections[i + 1];
+                if (section !== undefined) {
+                  const [l1] = section;
+                  if (l1 - 1 > r) {
+                    delete jumps[r + 1];
+                    jumps[r] = [l1 - 1, i];
+                  }
+                }
+                this.updateAverageDeleteOne(f);
               }
             }
             if (id > l && id < r) {
               sections.splice(i, 1, [l, id - 1], [id + 1, r]);
               delete jumps[id];
               jumps[l] = [id - 1, i];
-              jumps[id + 1] = [r -1, i + 1];
+              jumps[id + 1] = [r - 1, i + 1];
+              this.updateAverageDeleteOne(f);
             }
           });
         }
@@ -691,32 +1000,56 @@ class Table {
   dealEmptySlot(id) {
     const { hash, columns, } = this;
     if (Array.isArray(columns)) {
-      columns.forEach((k) => {
-        if (hash[k] && hash[k].type === 's') {
-          const { sections, jumps, } = hash[k];
+      columns.forEach((f) => {
+        const groove = hash[f];
+        if (groove && groove.type === 's') {
+          const { sections, jumps, } = groove;
           sections.forEach((s, i) => {
             const [l, r] = s;
             if (id === l) {
               if (r - l === 0) {
                 sections.splice(i, 1);
                 delete jumps[id];
+                this.updateAverageDeleteOne(f);
               } else {
                 sections[i] = [l + 1, r];
+                delete jumps[l];
+                jumps[l + 1] = [r - 1, i];
+                const section = sections[i - 1];
+                if (section !== undefined) {
+                  const [_, r1] = section;
+                  if (l + 1 > r1) {
+                    jumps[r1 + 1] = [l, i - 1];
+                  }
+                }
+                this.updateAverageDeleteOne(f);
               }
             }
             if (id === r) {
               if (r - l === 0) {
                 sections.splice(i, 1);
                 delete jumps[id];
+                this.updateAverageDeleteOne(f);
               } else {
                 sections[i] = [l, r - 1];
+                jumps[l] = [r - 2, i];
+                const section = sections[i + 1];
+                if (section !== undefined) {
+                  const [l1] = section;
+                  if (l1 - 1 > r) {
+                    delete jumps[r + 1];
+                    jumps[r] = [l1 - 1, i];
+                  }
+                }
+                this.updateAverageDeleteOne(f);
               }
             }
             if (id > l && id < r) {
               sections.splice(i, 1, [l, id - 1], [id + 1, r]);
               delete jumps[id];
               jumps[l] = [id - 1, i];
-              jumps[id + 1] = [r -1, i + 1];
+              jumps[id + 1] = [r - 1, i + 1];
+              this.updateAverageDeleteOne(f);
             }
           });
         }
@@ -729,6 +1062,7 @@ class Table {
       const id = ids[i];
       await this.delete(id);
     }
+    this.outputOperate('deleteAll');
   }
 
   async delete(id) {
@@ -742,10 +1076,15 @@ class Table {
       },
       tb,
     } = this;
-    await deleteRecord(type, connection, tb, id);
+    if (this.hasSqls()) {
+      await deleteRecord(type, connection, tb, id, this);
+    } else {
+      await deleteRecord(type, connection, tb, id);
+    }
     this.deleteDataById(id);
     this.outOfOrder = true;
     this.full = false;
+    this.outputOperate('delete');
   }
 
   async update(obj) {
@@ -759,10 +1098,15 @@ class Table {
       },
       tb,
     } = this;
-    await updateRecord(type, connection, tb, obj);
+    if (this.hasSqls()) {
+      await updateRecord(type, connection, tb, obj, this);
+    } else {
+      await updateRecord(type, connection, tb, obj);
+    }
     this.deleteDataById(obj.id);
     this.outOfOrder = true;
     this.full = false;
+    this.outputOperate('update');
   }
 
   async getSimpleRecord(id) {
@@ -776,7 +1120,11 @@ class Table {
         },
         datas, tb,
       } = this;
-      record = await selectRecord(type, connection, tb, [id, id]);
+      if (this.hasSqls()) {
+        record = await selectRecord(type, connection, tb, [id, id], undefined, this);
+      } else {
+        record = await selectRecord(type, connection, tb, [id, id]);
+      }
     } else {
       record = await this.select([id, id], undefined, undefined, false);
     }
@@ -803,6 +1151,7 @@ class Table {
     assignContent(highRecord, lowRecordCopy);
     await this.update(lowRecord);
     await this.update(highRecord);
+    this.outputOperate('exchangeContent');
   }
 
   async exchangeHighIndex(highId, mem) {
@@ -839,6 +1188,7 @@ class Table {
       default:
         throw new Error('[Error] The internal variable is full of abnormal values.');
     }
+    this.outputOperate('exchangeHighIndex');
     return mapping;
   }
 
@@ -886,6 +1236,7 @@ class Table {
     if (mem !== true) {
       await this.exchangeContent(highId, emptyId);
     }
+    this.checkMemory();
     return [highId, emptyId];
   }
 
@@ -1007,7 +1358,11 @@ class Table {
           tb,
         } = this;
         const index = section[0];
-        records = await selectRecord(type, connection, tb, [index, index]);
+        if (this.hasSqls()) {
+          records = await selectRecord(type, connection, tb, [index, index], undefined, this);
+        } else {
+          records = await selectRecord(type, connection, tb, [index, index]);
+        }
         const record = records[0];
         this.columns = [];
         Object.keys(record).forEach((k, i) => {
@@ -1015,14 +1370,16 @@ class Table {
         });
         const [l] = section;
         this.datas[l] = record;
-        const { hash, } = this;
+        const { hash, average, } = this;
         let first;
         Object.keys(record).forEach((k, i) => {
           const o = hash[k];
           if (o !== undefined && o.type === 's') {
-            const { sections, } = o;
+            const { sections, jumps, } = o;
             sections.push(section);
-            this.updateAverageLast(section, sections);
+            const [l, r] = section;
+            jumps[l] = [r -1, 0];
+            this.updateAverageLast(k, section, sections);
             o.chaotic = true;
           } else {
             if (i === 0) {
@@ -1031,6 +1388,10 @@ class Table {
                 sections: [section],
                 jumps: [],
                 chaotic: false,
+              };
+              average[k] = {
+                occupy: 0,
+                bare: 0,
               };
               const { jumps, } = hash[k];
               jumps[l] = [l, 1];
@@ -1074,7 +1435,7 @@ class Table {
       }
     });
     const keys = Object.keys(set);
-    const { hash, } = this;
+    const { hash, average, } = this;
     for (let i = 0; i < keys.length; i += 1) {
       const k = keys[i];
       const s = set[k];
@@ -1085,6 +1446,10 @@ class Table {
           jumps: [],
           sections: [],
           chaotic: false,
+        };
+        average[i] = {
+          occupy: 0,
+          bare: 0,
         };
         for (let j = 1; j < s.length; j += 1) {
           hash[s[j]] = {
@@ -1120,7 +1485,7 @@ class Table {
           if (set[f] === undefined) {
             const list = lists[f];
             if (Array.isArray(list)) {
-              const { hash, } = this;
+              const { hash, average, } = this;
               const { sections: s, jumps: j, chaotic, } = hash[f];
               hash[list[0]] = {
                 type: 's',
@@ -1128,6 +1493,14 @@ class Table {
                 sections: s.slice(0, s.length),
                 chaotic,
               };
+              const {
+                occupy,
+                bare,
+              } = average[f];
+              average[list[0]] = {
+                occupy,
+                bare,
+              }
               for (let i = 1; i < list.length; i += 1) {
                 hash[list[i]] = {
                   type: 'p',
@@ -1150,6 +1523,14 @@ class Table {
             jumps: j.slice(0, j.length),
             sections: s.slice(0, s.length),
             chaotic,
+          };
+          const {
+            occupy,
+            bare,
+          } = this.average[p];
+          average[i] = {
+            occupy,
+            bare,
           };
           for (let j = 1; j < elem.length; j += 1) {
             hash[elem[j]] = {
@@ -1197,6 +1578,8 @@ class Table {
         this.deleteDataById(l + i)
       }
     });
+    this.outputOperate('select');
+    this.checkMemory();
     return records;
   }
 
@@ -1218,12 +1601,9 @@ class Table {
     if (data !== undefined && data[filter] !== undefined) {
       const l = getLength([0, index]);
       const {
-        average: {
-          occupy,
-        },
-      } = this;
-      const multily = occupy * l;
-      if (multily >= 2.8 && l / multily >= 28) {
+        occupy,
+      } = this.average[filter];
+      if (occupy >= 2.8 && l / occupy >= 0.67) {
         const { jumps, } = this.hash[filter];
         while (true) {
           const data = datas[index - 1];
@@ -1242,12 +1622,9 @@ class Table {
       const i = index;
       const l = getLength([0, index]);
       const {
-        average: {
-          bare,
-        },
-      } = this;
-      const multily = bare * l;
-      if (multily >= 2.8 && l / multily >= 28) {
+        bare,
+      } = this.average[filter];
+      if (bare >= 2.8 && l / bare >= 0.67) {
         const { jumps, } = this.hash[filter];
         while (index >= 0) {
           const d = datas[index - 1];
@@ -1269,7 +1646,7 @@ class Table {
         let { jumps, sections, } = this.hash[filter];
         if (sections.length === 0) {
           sections.push(section);
-          this.updateAverageLast(section, sections);
+          this.updateAverageLast(filter, section, sections);
           ans.push(section);
           const [l, r] = section;
           jumps[l] = [r, 0];
@@ -1293,7 +1670,7 @@ class Table {
                 const section = [index, r];
                 ans.push(section);
                 sections.splice(1, 0, section);
-                this.updateAverageMiddle(1, sections);
+                this.updateAverageMiddle(filter, 1, sections);
                 jumps[index] = [r, 0];
                 index = r + 1;
                 break;
@@ -1308,7 +1685,8 @@ class Table {
               const section = [index, right];
               ans.push(section);
               sections.push(section);
-              this.updateAverageLast(section, sections);
+              jumps[index] = [right, pointer];
+              this.updateAverageLast(filter, section, sections);
               return ans;
             }
             return ans;
@@ -1325,21 +1703,7 @@ class Table {
             }
             ans.push(section);
             sections.splice(i + 1, 0, section);
-            this.updateAverageMiddle(i + 1, sections);
-            jumps[max] = [min - 1, i];
-            break;
-          }
-          if (index > r2 && index < l1) {
-            pointer = i + 1;
-            const min = Math.min(right, l1);
-            const max = Math.max(index, r2)
-            const section = [index, min];
-            if (l1 <= right) {
-              index = min;
-            }
-            ans.push(section);
-            sections.splice(i + 1, 0, section);
-            this.updateAverageMiddle(i + 1, sections);
+            this.updateAverageMiddle(filter, i + 1, sections);
             jumps[max] = [min - 1, i];
             break;
           }

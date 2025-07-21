@@ -16,6 +16,7 @@ const options = {
   type: 'mysql',
   connection,
   memorySafeLine: 30,
+  logLevel: 1,
 };
 
 export default options;

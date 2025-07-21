@@ -1,8 +1,8 @@
 import { describe, expect, test, } from '@jest/globals';
 import { getOwnIpAddresses, wrapIpv6, } from 'manner.js/server';
 import DistribTable from '~/class/DistribTable';
-import mysqlNoHighIndexOptions from '~/obj/mysqlNoHighIndexOptions';
-import global from '~/obj/global';
+import DistribUsers from '~/class/table/MysqlDistribUsers';
+import global from '~/obj/testGlobal';
 
 const first = 41;
 const second = 42;
@@ -18,8 +18,8 @@ beforeAll(() => {
     [ipv4, 8000],
     [ipv4, 8001],
   ];
-  global.users.tb1 = new DistribTable('users', mysqlNoHighIndexOptions, 8000, tables);
-  global.users.tb2 = new DistribTable('users', mysqlNoHighIndexOptions, 8001, tables);
+  global.users.tb1 = new DistribUsers(8000, tables);
+  global.users.tb2 = new DistribUsers(8001, tables);
 });
 
 describe('[Class] Distributed operation test cases;', () => {
@@ -105,9 +105,9 @@ describe('[Class] Distributed operation test cases;', () => {
     const tables = [
       [ipv4, 8000],
       [ipv4, 8001],
-        [ipv4, 8002],
+      [ipv4, 8002],
     ];
-    global.users.tb3 = new DistribTable('users', mysqlNoHighIndexOptions, 8002, tables);
+    global.users.tb3 = new DistribUsers(8002, tables);
     const global_users_tb3 = global.users.tb3;
     await DistribTable.join([global_users_tb3], [global_users_tb1, global_users_tb2]);
     await global_users_tb3.updateDistrib({ id: 39, name: 'zach', age: 34, gender: 1, city: 'washington', country: 'america', });

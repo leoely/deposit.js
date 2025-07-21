@@ -1,3 +1,4 @@
+import Table from '~/class/Table';
 import formateVal from '~/lib/util/formateVal';
 
 function getCols(obj) {
@@ -20,7 +21,7 @@ function formateBracket(list) {
   return '(' + list.join(',') + ')';
 }
 
-function insertRecordInMysql(connection, tb, objs) {
+function insertRecordInMysql(connection, tb, objs, instance) {
   return new Promise((resolve, reject) => {
     const values = objs.map((o) => getVals(o, 'double')).join(',');
     const sql = 'INSERT INTO ' + tb + getCols(objs[0]) + ' VALUES ' + values;
@@ -28,6 +29,9 @@ function insertRecordInMysql(connection, tb, objs) {
         if (err) {
           reject(err);
         } else {
+          if (instance !== undefined) {
+            instance.sqls.push(sql);
+          }
           resolve(results);
         }
       }
@@ -35,15 +39,20 @@ function insertRecordInMysql(connection, tb, objs) {
   });
 }
 
-function insertRecordInPostgresql(connection, tb, objs) {
+function insertRecordInPostgresql(connection, tb, objs, instance) {
   return connection.then((conn) => {
     const values = objs.map((o) => getVals(o, 'single')).join(',');
     const sql = 'INSERT INTO ' + tb + getCols(objs[0]) + ' VALUES ' + values;
-    return conn.query(sql).then((res) => res.rows);
+    return conn.query(sql).then((res) => {
+      if (instance !== undefined) {
+        instance.sqls.push(sql);
+      }
+      return res.rows;
+    });
   });
 }
 
-export default function insertRecord(type, connection, tb, objs) {
+export default function insertRecord(type, connection, tb, objs, instance) {
   if (typeof type !== 'string') {
     throw new Error('[Error] The parameter type is a string type.');
   }
@@ -61,9 +70,14 @@ export default function insertRecord(type, connection, tb, objs) {
   if (!Array.isArray(objs)) {
     throw new Error('[Error] The parameter should be of array type.');
   }
+  if (instance !== undefined) {
+    if (!(instance instanceof Table)) {
+      throw new Error('[Error] Parameter instance should be for table type.');
+    }
+  }
   if (type === 'mysql') {
-    return insertRecordInMysql(connection, tb, objs);
+    return insertRecordInMysql(connection, tb, objs, instance);
   } else {
-    return insertRecordInPostgresql(connection, tb, objs);
+    return insertRecordInPostgresql(connection, tb, objs, instance);
   }
 }
