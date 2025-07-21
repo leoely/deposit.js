@@ -57,21 +57,38 @@ function deepCopyRecord(l, r, o, ans, datas, filters) {
   }
 }
 
-function generateBareJump(sections, i, jumps) {
+function generateBareJump(filter, sections, i, average, jumps) {
+  if (typeof filter !== 'string') {
+    throw new Error('[Error] Parameter filter should be of string type.');
+  }
   if (!Array.isArray(sections)) {
     throw new Error('[Error] The parameter sections should be an array type.');
   }
   if (!Number.isInteger(i)) {
-    throw new Error('[Error] Parameter should be of integer type.');
+    throw new Error('[Error] Parameter i should be of integer type.');
+  }
+  if (typeof average !== 'object') {
+    throw new Error('[Error] Parameter average should based on object type..');
   }
   if (!Array.isArray(jumps)) {
     throw new Error('[Error] The parameter jumps should be an array type.');
   }
   const section = sections[i - 1];
+  const [l2] = sections[i];
+  const {
+    bare,
+  } = average;
   if (section !== undefined) {
     const [l1, r1] = section;
-    const [l2] = sections[i];
-    jumps[r1 + 1] = [l2 - 1, i - 1];
+    if (r1 + 1 < l2 - 1) {
+      jumps[r1 + 1] = [l2 - 1, i - 1];
+      average.bare = (bare + getLength([r1 + 1, l2 - 1])) / 2;
+    }
+  } else {
+    if (l2 - 1 >= 0 && i - 1 >= 0) {
+      jumps[0] = [l2 - 1, i - 1];
+    }
+    average.bare = (bare + getLength([0, l2 - 1])) / 2;
   }
 }
 
@@ -166,10 +183,7 @@ class Table {
     this.tb = tb;
     this.hash = {};
     this.datas = [];
-    this.average = {
-      bare: 0,
-      occupy: 0,
-    };
+    this.average = {};
     this.dealOptions(options);
     this.options = options;
     this.counts = [];
@@ -332,7 +346,10 @@ class Table {
     this.outOfOrdder = true;
   }
 
-  updateAverageLast(section, sections) {
+  updateAverageLast(filter, section, sections) {
+    if (typeof filter !== 'string') {
+      throw new Error('[Error] The parameter filter should be string type.');
+    }
     if (!Array.isArray(section)) {
       throw new Error('[Error] The parameter section should be an array type.');
     }
@@ -343,22 +360,27 @@ class Table {
     const s1 = sections[length - 1];
     const s2 = sections[length - 2];
     const v1 = getLength(s1);
+    const average = this.average[filter];
     const {
-      average: {
-        bare,
-        occupy,
-      },
-    } = this;
-    this.average.occupy = (v1 + occupy) / 2;
+      bare,
+      occupy,
+    } = average;
+    average.occupy = (v1 + occupy) / 2;
     if (s2 !== undefined) {
       const [l1, r1] = s1;
       const [l2, r2] = s2;
       const v2 = getLength([r1 + 1, l2 - 1]);
-      this.average.bare = (v1 + bare) / 2;
+      const {
+        jumps,
+      } = this.hash[filter];
+      generateBareJump(filter, sections, length - 2, average, jumps);
     }
   }
 
-  updateAverageMiddle(i, sections) {
+  updateAverageMiddle(filter, i, sections) {
+    if (typeof filter !== 'string') {
+      throw new Error('[Error] The parameter filter should be string type.');
+    }
     if (!Number.isInteger(i)) {
       throw new Error('[Error] The parameter i should be of integer type.');
     }
@@ -369,17 +391,41 @@ class Table {
     const s2 = sections[i - 1];
     const v1 = getLength(s1);
     const {
-      average: {
-        bare,
-        occupy,
-      },
-    } = this;
-    this.average.occupy = (v1 + occupy) / 2;
+      bare,
+      occupy,
+    } = this.average[filter];
+    this.average[filter].occupy = (v1 + occupy) / 2;
     if (s2 !== undefined) {
       const [l1, r1] = s1;
       const [l2, r2] = s2;
       const v2 = getLength([r1 + 1, l2 - 1]);
-      this.average.bare = (v1 + bare) / 2;
+      if (v2 > 0) {
+        const {
+          jumps,
+        } = this.hash[filter];
+        jumps[r1 + 1] = [l2 - 1, i];
+        if (bare <= 0) {
+          this.average[filter].bare = (v2 + bare) / 2;
+        } else {
+          this.average[filter].bare = v2 + ((bare * 2 - v1) / 2) / 2;
+        }
+      }
+    }
+  }
+
+  updateAverageDeleteOne(filter) {
+    if (typeof filter !== 'string') {
+      throw new Error('[Error] The parameter filter should be string type.');
+    }
+    const {
+      bare,
+      occupy,
+    } = this.average[filter];
+    if (occupy > 0) {
+      this.average[filter].occupy = (occupy * 2 + 1) / 2;
+    }
+    if (bare > 0) {
+      this.average[filter].bare = (bare * 2 - 1) / 2;
     }
   }
 
@@ -459,29 +505,29 @@ class Table {
       sections = this.hash[filter].sections;
       let i = 0;
       while (sections[i + 1] !== undefined) {
-        const {
-          average: {
-            bare,
-            occupy,
-          },
-        } = this;
         const [l1, r1] = sections[i];
         const [l2, r2] = sections[i + 1];
-        const v1 = getLength(sections[i]);
-        this.average.occupy = (v1 + occupy) / 2;
-        const v2 = getLength(sections[i + 1]);
-        this.average.occupy = (v2 + occupy) / 2;
-        const v3 = getLength([r1 + 1, l2 - 1]);
-        this.average.bare = (v3 + occupy) / 2;
         if (r1 >= l2 - 1) {
           const min = Math.min(l1, l2);
           const max = Math.max(r1, r2);
           sections.splice(i, 2, [min, max]);
+          const average = this.average[filter];
+          const {
+            bare,
+            occupy,
+          } = average;
+          const v1 = getLength(sections[i]);
+          const v2 = getLength(sections[i + 1]);
+          const v3 = getLength([min, max]);
+          const delta = (v1 + v2 - v3);
+          average[filter].occupy = (occupy * 2 - delta) / 2;
+          const v4 = getLength([r1 + 1, l2 - 1]);
+          average[filter].bare = (bare * 2 + delta) / 2;
           jumps[min] = [max, i];
-          generateBareJump(sections, i, jumps);
+          generateBareJump(filter, sections, i, average, jumps);
         } else {
           i += 1;
-          generateBareJump(sections, i, jumps);
+          generateBareJump(filter, sections, i, average, jumps);
         }
       }
       this.hash[filter].chaotic = false;
@@ -629,32 +675,56 @@ class Table {
     }
     const { hash, datas, } = this;
     if (datas[id] !== undefined) {
-      Object.keys(datas[id]).forEach((k) => {
-        if (hash[k].type === 's') {
-          const { sections, jumps, } = hash[k];
+      Object.keys(datas[id]).forEach((f) => {
+        const groove = hash[f];
+        if (groove.type === 's') {
+          const { sections, jumps, } = groove;
           sections.forEach((s, i) => {
             const [l, r] = s;
             if (id === l) {
               if (r - l === 0) {
                 sections.splice(i, 1);
                 delete jumps[id];
+                this.updateAverageDeleteOne(f);
               } else {
                 sections[i] = [l + 1, r];
+                delete jumps[l];
+                jumps[l + 1] = [r - 1, i];
+                const section = sections[i - 1];
+                if (section !== undefined) {
+                  const [_, r1] = section;
+                  if (l + 1 > r1) {
+                    jumps[r1 + 1] = [l, i - 1];
+                  }
+                }
+                this.updateAverageDeleteOne(f);
               }
             }
             if (id === r) {
               if (r - l === 0) {
                 sections.splice(i, 1);
                 delete jumps[id];
+                this.updateAverageDeleteOne(f);
               } else {
                 sections[i] = [l, r - 1];
+                jumps[l] = [r - 2, i];
+                const section = sections[i + 1];
+                if (section !== undefined) {
+                  const [l1] = section;
+                  if (l1 - 1 > r) {
+                    delete jumps[r + 1];
+                    jumps[r] = [l1 - 1, i];
+                  }
+                }
+                this.updateAverageDeleteOne(f);
               }
             }
             if (id > l && id < r) {
               sections.splice(i, 1, [l, id - 1], [id + 1, r]);
               delete jumps[id];
               jumps[l] = [id - 1, i];
-              jumps[id + 1] = [r -1, i + 1];
+              jumps[id + 1] = [r - 1, i + 1];
+              this.updateAverageDeleteOne(f);
             }
           });
         }
@@ -691,32 +761,56 @@ class Table {
   dealEmptySlot(id) {
     const { hash, columns, } = this;
     if (Array.isArray(columns)) {
-      columns.forEach((k) => {
-        if (hash[k] && hash[k].type === 's') {
-          const { sections, jumps, } = hash[k];
+      columns.forEach((f) => {
+        const groove = hash[f];
+        if (groove && groove.type === 's') {
+          const { sections, jumps, } = groove;
           sections.forEach((s, i) => {
             const [l, r] = s;
             if (id === l) {
               if (r - l === 0) {
                 sections.splice(i, 1);
                 delete jumps[id];
+                this.updateAverageDeleteOne(f);
               } else {
                 sections[i] = [l + 1, r];
+                delete jumps[l];
+                jumps[l + 1] = [r - 1, i];
+                const section = sections[i - 1];
+                if (section !== undefined) {
+                  const [_, r1] = section;
+                  if (l + 1 > r1) {
+                    jumps[r1 + 1] = [l, i - 1];
+                  }
+                }
+                this.updateAverageDeleteOne(f);
               }
             }
             if (id === r) {
               if (r - l === 0) {
                 sections.splice(i, 1);
                 delete jumps[id];
+                this.updateAverageDeleteOne(f);
               } else {
                 sections[i] = [l, r - 1];
+                jumps[l] = [r - 2, i];
+                const section = sections[i + 1];
+                if (section !== undefined) {
+                  const [l1] = section;
+                  if (l1 - 1 > r) {
+                    delete jumps[r + 1];
+                    jumps[r] = [l1 - 1, i];
+                  }
+                }
+                this.updateAverageDeleteOne(f);
               }
             }
             if (id > l && id < r) {
               sections.splice(i, 1, [l, id - 1], [id + 1, r]);
               delete jumps[id];
               jumps[l] = [id - 1, i];
-              jumps[id + 1] = [r -1, i + 1];
+              jumps[id + 1] = [r - 1, i + 1];
+              this.updateAverageDeleteOne(f);
             }
           });
         }
@@ -1015,14 +1109,16 @@ class Table {
         });
         const [l] = section;
         this.datas[l] = record;
-        const { hash, } = this;
+        const { hash, average, } = this;
         let first;
         Object.keys(record).forEach((k, i) => {
           const o = hash[k];
           if (o !== undefined && o.type === 's') {
-            const { sections, } = o;
+            const { sections, jumps, } = o;
             sections.push(section);
-            this.updateAverageLast(section, sections);
+            const [l, r] = section;
+            jumps[l] = [r -1, 0];
+            this.updateAverageLast(k, section, sections);
             o.chaotic = true;
           } else {
             if (i === 0) {
@@ -1031,6 +1127,10 @@ class Table {
                 sections: [section],
                 jumps: [],
                 chaotic: false,
+              };
+              average[k] = {
+                occupy: 0,
+                bare: 0,
               };
               const { jumps, } = hash[k];
               jumps[l] = [l, 1];
@@ -1074,7 +1174,7 @@ class Table {
       }
     });
     const keys = Object.keys(set);
-    const { hash, } = this;
+    const { hash, average, } = this;
     for (let i = 0; i < keys.length; i += 1) {
       const k = keys[i];
       const s = set[k];
@@ -1085,6 +1185,10 @@ class Table {
           jumps: [],
           sections: [],
           chaotic: false,
+        };
+        average[i] = {
+          occupy: 0,
+          bare: 0,
         };
         for (let j = 1; j < s.length; j += 1) {
           hash[s[j]] = {
@@ -1120,7 +1224,7 @@ class Table {
           if (set[f] === undefined) {
             const list = lists[f];
             if (Array.isArray(list)) {
-              const { hash, } = this;
+              const { hash, average, } = this;
               const { sections: s, jumps: j, chaotic, } = hash[f];
               hash[list[0]] = {
                 type: 's',
@@ -1128,6 +1232,14 @@ class Table {
                 sections: s.slice(0, s.length),
                 chaotic,
               };
+              const {
+                occupy,
+                bare,
+              } = average[f];
+              average[list[0]] = {
+                occupy,
+                bare,
+              }
               for (let i = 1; i < list.length; i += 1) {
                 hash[list[i]] = {
                   type: 'p',
@@ -1150,6 +1262,14 @@ class Table {
             jumps: j.slice(0, j.length),
             sections: s.slice(0, s.length),
             chaotic,
+          };
+          const {
+            occupy,
+            bare,
+          } = this.average[p];
+          average[i] = {
+            occupy,
+            bare,
           };
           for (let j = 1; j < elem.length; j += 1) {
             hash[elem[j]] = {
@@ -1218,12 +1338,9 @@ class Table {
     if (data !== undefined && data[filter] !== undefined) {
       const l = getLength([0, index]);
       const {
-        average: {
-          occupy,
-        },
-      } = this;
-      const multily = occupy * l;
-      if (multily >= 2.8 && l / multily >= 28) {
+        occupy,
+      } = this.average[filter];
+      if (occupy >= 2.8 && l / occupy >= 0.67) {
         const { jumps, } = this.hash[filter];
         while (true) {
           const data = datas[index - 1];
@@ -1242,12 +1359,9 @@ class Table {
       const i = index;
       const l = getLength([0, index]);
       const {
-        average: {
-          bare,
-        },
-      } = this;
-      const multily = bare * l;
-      if (multily >= 2.8 && l / multily >= 28) {
+        bare,
+      } = this.average[filter];
+      if (bare >= 2.8 && l / bare >= 0.67) {
         const { jumps, } = this.hash[filter];
         while (index >= 0) {
           const d = datas[index - 1];
@@ -1269,7 +1383,7 @@ class Table {
         let { jumps, sections, } = this.hash[filter];
         if (sections.length === 0) {
           sections.push(section);
-          this.updateAverageLast(section, sections);
+          this.updateAverageLast(filter, section, sections);
           ans.push(section);
           const [l, r] = section;
           jumps[l] = [r, 0];
@@ -1293,7 +1407,7 @@ class Table {
                 const section = [index, r];
                 ans.push(section);
                 sections.splice(1, 0, section);
-                this.updateAverageMiddle(1, sections);
+                this.updateAverageMiddle(filter, 1, sections);
                 jumps[index] = [r, 0];
                 index = r + 1;
                 break;
@@ -1308,7 +1422,8 @@ class Table {
               const section = [index, right];
               ans.push(section);
               sections.push(section);
-              this.updateAverageLast(section, sections);
+              jumps[index] = [right, pointer];
+              this.updateAverageLast(filter, section, sections);
               return ans;
             }
             return ans;
@@ -1325,7 +1440,7 @@ class Table {
             }
             ans.push(section);
             sections.splice(i + 1, 0, section);
-            this.updateAverageMiddle(i + 1, sections);
+            this.updateAverageMiddle(filter, i + 1, sections);
             jumps[max] = [min - 1, i];
             break;
           }
@@ -1339,7 +1454,7 @@ class Table {
             }
             ans.push(section);
             sections.splice(i + 1, 0, section);
-            this.updateAverageMiddle(i + 1, sections);
+            this.updateAverageMiddle(filter, i + 1, sections);
             jumps[max] = [min - 1, i];
             break;
           }

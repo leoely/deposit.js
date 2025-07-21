@@ -41,7 +41,7 @@ describe('[Class] Select high index test cases;', () => {
     const users9 = await global_users_tb.select([0, 34], ['name']);
     expect(JSON.stringify(users9)).toMatch('[{\"name\":\"james\"},{\"name\":\"ovlier\"},{\"name\":\"thomas\"},{\"name\":\"david\"},{\"name\":\"joseph\"},{\"name\":\"william\"},{\"name\":\"michael\"},{\"name\":\"george\"},{\"name\":\"alexander\"},{\"name\":\"john\"},{\"name\":\"taylor\"},{\"name\":\"emily\"},{\"name\":\"emma\"},{\"name\":\"particia\"},{\"name\":\"elizebeth\"},{\"name\":\"bethany\"},{\"name\":\"samantha\"},{\"name\":\"patricia\"},{\"name\":\"jacob\"},{\"name\":\"kyle\"},{\"name\":\"liam\"},{\"name\":\"noah\"},{\"name\":\"damian\"},{\"name\":\"reece\"},{\"name\":\"kyle\"},{\"name\":\"noah\"},{\"name\":\"tracy\"},{\"name\":\"amelia\"},{\"name\":\"lsla\"},{\"name\":\"poppy\"},{\"name\":\"susan\"},{\"name\":\"abigail\"},{\"name\":\"elizabeth\"},{\"name\":\"lsabella\"},{\"name\":\"mia\"}]');
     const mappings2 = global_users_tb.getMappings();
-    for (let i = mappings2.length - 1; i >= 0; i -= 1) {
+    for (let i = mappings2.length - 1; i >= 1; i -= 1) {
       const [highId, lowId] = mappings2[i];
       await global_users_tb.exchangeContent(highId, lowId);
     }
