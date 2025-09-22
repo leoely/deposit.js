@@ -27,7 +27,7 @@ describe('[Class] Distributed operation test cases;', () => {
     await new Promise((resolve, reject) => {
       setTimeout(() => {
         resolve();
-      }, 1100);
+      }, 1400);
     });
     const global_users_tb1 = global.users.tb1;
     const global_users_tb2 = global.users.tb2;
