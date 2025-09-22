@@ -2,6 +2,7 @@ import os from 'os';
 import {
   getGTMNowString,
   checkLogPath,
+  addToLog,
   appendToLog,
   logOutOfMemory,
 } from 'manner.js/server';
@@ -298,6 +299,20 @@ class Table {
     }
   }
 
+  addToLog(content) {
+    if (typeof content !== 'string') {
+      throw new Error('[Error] The parameter content must be of string type.');
+    }
+    const {
+      options: {
+        logPath,
+      },
+    } = this;
+    if (typeof logPath === 'string') {
+      addToLog(logPath, content);
+    }
+  }
+
   outputOperate(operate) {
     if (typeof operate !== 'string') {
       throw new Error('[Error] The parameter operate must be of string type.');
@@ -340,6 +355,55 @@ class Table {
     sqls.forEach((sql) => {
       this.appendToLog('Class:' + name + ' ████ & ████ ' + 'Operate:' + operate +  ' ████ & ████ ' + 'SQL:' + sql);
     });
+  }
+
+  outputOperateError(operate, error) {
+    if (typeof operate !== 'string') {
+      throw new Error('[Error] The parameter operate must be of string type.');
+    }
+    if (!(error instanceof Error)) {
+      throw new Error('[Error] Parameter error should be of error type.');
+    }
+    const {
+      tb,
+      options: {
+        debug,
+      },
+      constructor: {
+        name,
+      },
+    } = this;
+    operate = operate[0].toUpperCase() + operate.substring(1, operate.length);
+    const sqls = this.getSqls();
+    if (debug === true) {
+      const {
+        fulmination,
+      } = this;
+      if (sqls.length === 0) {
+        fulmination.scan(`
+          (+) red; bold: !! (+) bold: * Class "[ (+) black; bgRed: ` + name + `(+) bold: "] Operate "[ (+) black; bgRed: ` + operate + `(+) bold: "] An error occurred during execution. 2&
+          (+) bold: "[ (+) black; bgRed: SQL (+) bold: "] >> * (+) underline: NULL; &
+          (+) bold: "[ (+) black; bgRed: Date (+) bold: "] @@ * (+) underline: "b ` + getGTMNowString() + `" 2&
+        `);
+      } else {
+        sqls.forEach((sql) => {
+          fulmination.scanAll([
+            [`
+              (+) red; bold: !! (+) bold: * Class "[ (+) black; bgRed: ` + name + `(+) bold: "] Operate "[ (+) black; bgRed: ` + operate + `(+) bold: "] an error occured during execution. 2&
+              (+) bold: "[ (+) black; bgRed: SQL (+) bold: "] >> * (+) underline:
+            `, 1],
+            [sql + ';', 2],
+            ['(+): &', 0],
+            ['(+) bold: "[ (+) black; bgRed: Date (+) bold: "] @@ * (+) underline: "b ' + getGTMNowString()  + '" 2&', 1],
+          ]);
+        });
+      }
+    }
+    sqls.forEach((sql) => {
+      this.appendToLog('Class:' + name + ' ████ & ████ ' + 'Operate:' + operate +  ' ████ & ████ ' + 'SQL:' + sql);
+    });
+    this.addToLog(error.stack + '\n');
+    throw error;
   }
 
   getSqls() {
@@ -416,9 +480,9 @@ class Table {
       } = this;
       if (debug === true) {
         fulmination.scan(`
-          (+) bold: !! (+) bold: * Class "[ (+) black; bgWhite: ` + name + `(+) bold: "] Situation "[ (+) black; bgWhite: Memory  (+) bold: "] Usage exhausted. 2&
-          (+) bold: "[ (+) black; bgWhite: FREEMEM (+) bold: "] !! * (+) underline: Only the remaining ones remain * (+) bold: "[ (+) black; bgWhite: 0 (+) bold: "] &
-          (+) bold: "[ (+) black; bgWhite: Date (+) bold: "] @@ * (+) underline: "b ` + getGTMNowString() + `" 2&
+          (+) red; bold: !! (+) bold: * Class "[ (+) black; bgRed: ` + name + `(+) bold: "] Situation "[ (+) black; bgWhite: Memory  (+) bold: "] Usage exhausted. 2&
+          (+) bold: "[ (+) black; bgRed: FREEMEM (+) bold: "] !! * (+) underline: Only the remaining ones remain * (+) bold: "[ (+) black; bgWhite: 0 (+) bold: "] &
+          (+) bold: "[ (+) black; bgRed: Date (+) bold: "] @@ * (+) underline: "b ` + getGTMNowString() + `" 2&
         `);
       }
       logOutOfMemory(logPath, freemem);
@@ -823,89 +887,97 @@ class Table {
   }
 
   async insert(cnt) {
-    if (typeof cnt !== 'object' && !Array.isArray(cnt)) {
-      throw new Error('[Error] The parameter cnt should be an object type or an array type.');
-    }
-    const {
-      options: {
-        type,
-        connection,
-      },
-      tb,
-    } = this;
-    if (Array.isArray(cnt)) {
-      if (this.hasSqls()) {
-        await insertRecord(type, connection, tb, cnt, this);
-      } else {
-        await insertRecord(type, connection, tb, cnt);
+    try {
+      if (typeof cnt !== 'object' && !Array.isArray(cnt)) {
+        throw new Error('[Error] The parameter cnt should be an object type or an array type.');
       }
-    } else {
-      if (this.hasSqls()) {
-        await insertRecord(type, connection, tb, [cnt], this);
+      const {
+        options: {
+          type,
+          connection,
+        },
+        tb,
+      } = this;
+      if (Array.isArray(cnt)) {
+        if (this.hasSqls()) {
+          await insertRecord(type, connection, tb, cnt, this);
+        } else {
+          await insertRecord(type, connection, tb, cnt);
+        }
       } else {
-        await insertRecord(type, connection, tb, [cnt]);
+        if (this.hasSqls()) {
+          await insertRecord(type, connection, tb, [cnt], this);
+        } else {
+          await insertRecord(type, connection, tb, [cnt]);
+        }
       }
+      this.outputOperate('insert');
+    } catch (error) {
+      this.outputOperateError('insert', error);
     }
-    this.outputOperate('insert');
   }
 
   async deleteExchange(id, total, mem) {
-    if (!Number.isInteger(id)) {
-      throw new Error('[Error] The parameter id should be of integer type.');
-    }
-    if (!Number.isInteger(total)) {
-      throw new Error('[Error] The parameter total should be of integer type.');
-    }
-    if (mem !== undefined) {
-      if (typeof mem !== 'boolean') {
-        throw new Error('[Error] The parameter mem should be of boolean type.');
+    try {
+      if (!Number.isInteger(id)) {
+        throw new Error('[Error] The parameter id should be of integer type.');
       }
-    }
-    const {
-      options: {
-        type,
-        connection,
-      },
-    } = this;
-    if (id === total - 1) {
-      const { tb, } = this;
-      if (mem !== true) {
-        if (this.hasSqls()) {
-          await deleteRecord(type, connection, tb, id, this);
-        } else {
-          await deleteRecord(type, connection, tb, id);
+      if (!Number.isInteger(total)) {
+        throw new Error('[Error] The parameter total should be of integer type.');
+      }
+      if (mem !== undefined) {
+        if (typeof mem !== 'boolean') {
+          throw new Error('[Error] The parameter mem should be of boolean type.');
         }
       }
-      this.deleteDataById(id);
-      this.outOfOrder = true;
-      this.full = false;
-    } else {
-      if (mem !== true) {
+      const {
+        options: {
+          type,
+          connection,
+        },
+      } = this;
+      if (id === total - 1) {
         const { tb, } = this;
-        let records;
-        if (this.hasSqls()) {
-          records = await selectRecord(type, connection, tb, [total - 1, total - 1], undefined, this);
-        } else {
-          records = await selectRecord(type, connection, tb, [total - 1, total - 1]);
+        if (mem !== true) {
+          if (this.hasSqls()) {
+            await deleteRecord(type, connection, tb, id, this);
+          } else {
+            await deleteRecord(type, connection, tb, id);
+          }
         }
-        const record = records[0];
-        if (this.hasSqls()) {
-          await deleteRecord(type, connection, tb, total - 1, this);
-        } else {
-          await deleteRecord(type, connection, tb, total - 1);
+        this.deleteDataById(id);
+        this.outOfOrder = true;
+        this.full = false;
+      } else {
+        if (mem !== true) {
+          const { tb, } = this;
+          let records;
+          if (this.hasSqls()) {
+            records = await selectRecord(type, connection, tb, [total - 1, total - 1], undefined, this);
+          } else {
+            records = await selectRecord(type, connection, tb, [total - 1, total - 1]);
+          }
+          const record = records[0];
+          if (this.hasSqls()) {
+            await deleteRecord(type, connection, tb, total - 1, this);
+          } else {
+            await deleteRecord(type, connection, tb, total - 1);
+          }
+          record.id = id;
+          if (this.hasSqls()) {
+            await updateRecord(type, connection, tb, record, this);
+          } else {
+            await updateRecord(type, connection, tb, record);
+          }
         }
-        record.id = id;
-        if (this.hasSqls()) {
-          await updateRecord(type, connection, tb, record, this);
-        } else {
-          await updateRecord(type, connection, tb, record);
-        }
+        this.deleteDataById(total - 1);
+        this.outOfOrder = true;
+        this.full = false;
       }
-      this.deleteDataById(total - 1);
-      this.outOfOrder = true;
-      this.full = false;
+      this.outputOperate('deleteExchange');
+    } catch (error) {
+      this.outputOperate('deleteExchange', error);
     }
-    this.outputOperate('deleteExchange');
   }
 
   deleteDataById(id) {
@@ -1062,51 +1134,58 @@ class Table {
       const id = ids[i];
       await this.delete(id);
     }
-    this.outputOperate('deleteAll');
   }
 
   async delete(id) {
-    if (!Number.isInteger(id)) {
-      throw new Error('[Error] The parameter id should be of integer type.');
+    try {
+      if (!Number.isInteger(id)) {
+        throw new Error('[Error] The parameter id should be of integer type.');
+      }
+      const {
+        options: {
+          type,
+          connection,
+        },
+        tb,
+      } = this;
+      if (this.hasSqls()) {
+        await deleteRecord(type, connection, tb, id, this);
+      } else {
+        await deleteRecord(type, connection, tb, id);
+      }
+      this.deleteDataById(id);
+      this.outOfOrder = true;
+      this.full = false;
+      this.outputOperate('delete');
+    } catch (error) {
+      this.outputOperateError('delete', error);
     }
-    const {
-      options: {
-        type,
-        connection,
-      },
-      tb,
-    } = this;
-    if (this.hasSqls()) {
-      await deleteRecord(type, connection, tb, id, this);
-    } else {
-      await deleteRecord(type, connection, tb, id);
-    }
-    this.deleteDataById(id);
-    this.outOfOrder = true;
-    this.full = false;
-    this.outputOperate('delete');
   }
 
   async update(obj) {
-    if (typeof obj !== 'object') {
-      throw new Error('[Error] The parameter obj should be of object type.');
+    try {
+      if (typeof obj !== 'object') {
+        throw new Error('[Error] The parameter obj should be of object type.');
+      }
+      const {
+        options: {
+          type,
+          connection,
+        },
+        tb,
+      } = this;
+      if (this.hasSqls()) {
+        await updateRecord(type, connection, tb, obj, this);
+      } else {
+        await updateRecord(type, connection, tb, obj);
+      }
+      this.deleteDataById(obj.id);
+      this.outOfOrder = true;
+      this.full = false;
+      this.outputOperate('update');
+    } catch (error) {
+      this.outputOperateError('update', error);
     }
-    const {
-      options: {
-        type,
-        connection,
-      },
-      tb,
-    } = this;
-    if (this.hasSqls()) {
-      await updateRecord(type, connection, tb, obj, this);
-    } else {
-      await updateRecord(type, connection, tb, obj);
-    }
-    this.deleteDataById(obj.id);
-    this.outOfOrder = true;
-    this.full = false;
-    this.outputOperate('update');
   }
 
   async getSimpleRecord(id) {
@@ -1284,303 +1363,307 @@ class Table {
   }
 
   async select(section, filters, arrange, enter) {
-    if (!Array.isArray(section)) {
-      throw new Error('[Error] The parameter section should be an array type.');
-    }
-    if (filters !== undefined) {
-      if (!Array.isArray(filters)) {
-        throw new Error('[Error] The parameter filters should be an array type.');
+    try {
+      if (!Array.isArray(section)) {
+        throw new Error('[Error] The parameter section should be an array type.');
       }
-    }
-    if (arrange !== undefined) {
-      if (typeof arrange !== 'boolean') {
-        throw new Error('[Error] The parameter arrange should be of boolean type.');
-      }
-    }
-    if (enter !== undefined) {
-      if (typeof enter !== 'boolean') {
-        throw new Error('[Error] The parameter pass should be of boolean type.');
-      }
-    }
-    if (enter === undefined || enter === true) {
-      const {
-        options: {
-          memorySafeLine,
-        },
-      } = this;
-      const [l, r] = section;
-      if (memorySafeLine <= r) {
-        const max = Math.max(l, memorySafeLine);
-        let originRecords;
-        if (l < memorySafeLine) {
-          const section = [l, memorySafeLine - 1];
-          originRecords = await this.select(section, filters, arrange, false);
-        } else {
-          originRecords = [];
+      if (filters !== undefined) {
+        if (!Array.isArray(filters)) {
+          throw new Error('[Error] The parameter filters should be an array type.');
         }
-        this.full = false;
-        const mappings = [];
-        const exchangeRecords = [];
-        this.candidates = [];
-        for (let i = max; i <= r; i += 1) {
-          let mapping;
-          if (this instanceof Table) {
-            mapping = await this.exchangeHighIndex(i);
-          } else if (this instanceof DistribTable) {
-            mapping = await this.exchangeHighIndexDistrib(i);
-          } else {
-            throw new Error('[Error] Unexpected type encountered during query.');
-          }
-          const [_, id] = mapping;
-          const [record] = await this.select([id, id], filters, arrange, false);
-          exchangeRecords.push(record);
-          mappings.push(mapping);
-        }
-        delete this.candidates;
-        if (this.mappings === undefined) {
-          this.mappings = mappings;
-        } else {
-          throw new Error('[Error] The result of the last high-level index hash not been obtained yet.');
-        }
-        this.full = false;
-        return originRecords.concat(exchangeRecords);
       }
-    }
-    const { datas, } = this;
-    let records;
-    if (filters === undefined) {
-      if (this.columns === undefined) {
+      if (arrange !== undefined) {
+        if (typeof arrange !== 'boolean') {
+          throw new Error('[Error] The parameter arrange should be of boolean type.');
+        }
+      }
+      if (enter !== undefined) {
+        if (typeof enter !== 'boolean') {
+          throw new Error('[Error] The parameter pass should be of boolean type.');
+        }
+      }
+      if (enter === undefined || enter === true) {
         const {
           options: {
-            type,
-            connection,
+            memorySafeLine,
           },
-          tb,
         } = this;
-        const index = section[0];
-        if (this.hasSqls()) {
-          records = await selectRecord(type, connection, tb, [index, index], undefined, this);
-        } else {
-          records = await selectRecord(type, connection, tb, [index, index]);
-        }
-        const record = records[0];
-        this.columns = [];
-        Object.keys(record).forEach((k, i) => {
-          this.columns[i] = k;
-        });
-        const [l] = section;
-        this.datas[l] = record;
-        const { hash, average, } = this;
-        let first;
-        Object.keys(record).forEach((k, i) => {
-          const o = hash[k];
-          if (o !== undefined && o.type === 's') {
-            const { sections, jumps, } = o;
-            sections.push(section);
-            const [l, r] = section;
-            jumps[l] = [r -1, 0];
-            this.updateAverageLast(k, section, sections);
-            o.chaotic = true;
+        const [l, r] = section;
+        if (memorySafeLine <= r) {
+          const max = Math.max(l, memorySafeLine);
+          let originRecords;
+          if (l < memorySafeLine) {
+            const section = [l, memorySafeLine - 1];
+            originRecords = await this.select(section, filters, arrange, false);
           } else {
-            if (i === 0) {
-              hash[k] = {
-                type: 's',
-                sections: [section],
-                jumps: [],
-                chaotic: false,
-              };
-              average[k] = {
-                occupy: 0,
-                bare: 0,
-              };
-              const { jumps, } = hash[k];
-              jumps[l] = [l, 1];
-              first = k;
+            originRecords = [];
+          }
+          this.full = false;
+          const mappings = [];
+          const exchangeRecords = [];
+          this.candidates = [];
+          for (let i = max; i <= r; i += 1) {
+            let mapping;
+            if (this instanceof Table) {
+              mapping = await this.exchangeHighIndex(i);
+            } else if (this instanceof DistribTable) {
+              mapping = await this.exchangeHighIndexDistrib(i);
             } else {
-              hash[k] = {
-                type: 'p',
-                pointer: first,
-              };
+              throw new Error('[Error] Unexpected type encountered during query.');
             }
+            const [_, id] = mapping;
+            const [record] = await this.select([id, id], filters, arrange, false);
+            exchangeRecords.push(record);
+            mappings.push(mapping);
           }
-        });
-      }
-      filters = this.columns;
-    }
-    const set = {};
-    const source = {};
-    filters.forEach((f, i) => {
-      const { hash, } = this;
-      const groove = hash[f];
-      if (groove === undefined) {
-        if (set['*null'] === undefined) {
-          set['*null'] = [];
-        }
-        set['*null'].push(f);
-      } else if (groove.type === 'p') {
-        const pointer = groove.pointer;
-        if (set[pointer] === undefined) {
-          set[pointer] = [];
-        }
-        set[pointer].push(f);
-      } else {
-        if (set['*rest'] === undefined) {
-          set['*rest'] = [];
-        }
-        set['*rest'].push(f);
-      }
-      const obj = groove;
-      if (obj && obj.type === 's') {
-        source[f] = true;
-      }
-    });
-    const keys = Object.keys(set);
-    const { hash, average, } = this;
-    for (let i = 0; i < keys.length; i += 1) {
-      const k = keys[i];
-      const s = set[k];
-      if (k === '*null') {
-        const i = s[0];
-        hash[i] = {
-          type: 's',
-          jumps: [],
-          sections: [],
-          chaotic: false,
-        };
-        average[i] = {
-          occupy: 0,
-          bare: 0,
-        };
-        for (let j = 1; j < s.length; j += 1) {
-          hash[s[j]] = {
-            type: 'p',
-            pointer: i,
-          };
-        }
-        const sections = this.calcSections(section, datas, set[k][0]);
-        for (let j = 0; j < s.length; j += 1) {
-          const f = s[j];
-          await this.cacheSections(sections, datas, f);
-        }
-      } else if (k === '*rest') {
-        const elem = set[k];
-        const h = {};
-        elem.forEach((e) => {
-          h[e] = true;
-        });
-        const lists = {};
-        const { hash, } = this;
-        Object.keys(hash).forEach((e) => {
-          const o = hash[e];
-          const { pointer: p, } = o;
-          if (o.type === 'p' && h[p] === true) {
-            if (lists[p] === undefined) {
-              lists[p] = [];
-            }
-            lists[p].push(e);
+          delete this.candidates;
+          if (this.mappings === undefined) {
+            this.mappings = mappings;
+          } else {
+            throw new Error('[Error] The result of the last high-level index hash not been obtained yet.');
           }
-        });
-        for (let j = 0; j < elem.length; j += 1) {
-          const f = elem[j];
-          if (set[f] === undefined) {
-            const list = lists[f];
-            if (Array.isArray(list)) {
-              const { hash, average, } = this;
-              const { sections: s, jumps: j, chaotic, } = hash[f];
-              hash[list[0]] = {
-                type: 's',
-                jumps: j.slice(0, j.length),
-                sections: s.slice(0, s.length),
-                chaotic,
-              };
-              const {
-                occupy,
-                bare,
-              } = average[f];
-              average[list[0]] = {
-                occupy,
-                bare,
-              }
-              for (let i = 1; i < list.length; i += 1) {
-                hash[list[i]] = {
+          this.full = false;
+          return originRecords.concat(exchangeRecords);
+        }
+      }
+      const { datas, } = this;
+      let records;
+      if (filters === undefined) {
+        if (this.columns === undefined) {
+          const {
+            options: {
+              type,
+              connection,
+            },
+            tb,
+          } = this;
+          const index = section[0];
+          if (this.hasSqls()) {
+            records = await selectRecord(type, connection, tb, [index, index], undefined, this);
+          } else {
+            records = await selectRecord(type, connection, tb, [index, index]);
+          }
+          const record = records[0];
+          this.columns = [];
+          Object.keys(record).forEach((k, i) => {
+            this.columns[i] = k;
+          });
+          const [l] = section;
+          this.datas[l] = record;
+          const { hash, average, } = this;
+          let first;
+          Object.keys(record).forEach((k, i) => {
+            const o = hash[k];
+            if (o !== undefined && o.type === 's') {
+              const { sections, jumps, } = o;
+              sections.push(section);
+              const [l, r] = section;
+              jumps[l] = [r -1, 0];
+              this.updateAverageLast(k, section, sections);
+              o.chaotic = true;
+            } else {
+              if (i === 0) {
+                hash[k] = {
+                  type: 's',
+                  sections: [section],
+                  jumps: [],
+                  chaotic: false,
+                };
+                average[k] = {
+                  occupy: 0,
+                  bare: 0,
+                };
+                const { jumps, } = hash[k];
+                jumps[l] = [l, 1];
+                first = k;
+              } else {
+                hash[k] = {
                   type: 'p',
-                  pointer: list[0],
+                  pointer: first,
                 };
               }
             }
-            const sections = this.calcSections(section, datas, f);
-            await this.cacheSections(sections, datas, f);
-          }
+          });
         }
-      } else {
-        const elem = set[k];
-        const i = s[0];
-        if (k !== '*rest' && source[hash[i].pointer] === undefined) {
-          const p = hash[i].pointer;
-          const { sections: s, jumps: j, chaotic, } = this.hash[p];
+        filters = this.columns;
+      }
+      const set = {};
+      const source = {};
+      filters.forEach((f, i) => {
+        const { hash, } = this;
+        const groove = hash[f];
+        if (groove === undefined) {
+          if (set['*null'] === undefined) {
+            set['*null'] = [];
+          }
+          set['*null'].push(f);
+        } else if (groove.type === 'p') {
+          const pointer = groove.pointer;
+          if (set[pointer] === undefined) {
+            set[pointer] = [];
+          }
+          set[pointer].push(f);
+        } else {
+          if (set['*rest'] === undefined) {
+            set['*rest'] = [];
+          }
+          set['*rest'].push(f);
+        }
+        const obj = groove;
+        if (obj && obj.type === 's') {
+          source[f] = true;
+        }
+      });
+      const keys = Object.keys(set);
+      const { hash, average, } = this;
+      for (let i = 0; i < keys.length; i += 1) {
+        const k = keys[i];
+        const s = set[k];
+        if (k === '*null') {
+          const i = s[0];
           hash[i] = {
             type: 's',
-            jumps: j.slice(0, j.length),
-            sections: s.slice(0, s.length),
-            chaotic,
+            jumps: [],
+            sections: [],
+            chaotic: false,
           };
-          const {
-            occupy,
-            bare,
-          } = this.average[p];
           average[i] = {
-            occupy,
-            bare,
+            occupy: 0,
+            bare: 0,
           };
-          for (let j = 1; j < elem.length; j += 1) {
-            hash[elem[j]] = {
+          for (let j = 1; j < s.length; j += 1) {
+            hash[s[j]] = {
               type: 'p',
               pointer: i,
             };
           }
-          const sections = this.calcSections(section, datas, i);
-          await this.cacheSections(sections, datas, i);
-          for (let j =0; j < elem.length; j += 1) {
-            const f = elem[j];
+          const sections = this.calcSections(section, datas, set[k][0]);
+          for (let j = 0; j < s.length; j += 1) {
+            const f = s[j];
             await this.cacheSections(sections, datas, f);
           }
-        } else {
-          if (k !== '*rest') {
-            const s = this.hash[i].pointer;
-            const sections = this.calcSections(section, datas, s);
-            await this.cacheSections(sections, datas, s);
-            for (let j = 0; j < elem.length; j += 1) {
-              const f = set[k][j];
+        } else if (k === '*rest') {
+          const elem = set[k];
+          const h = {};
+          elem.forEach((e) => {
+            h[e] = true;
+          });
+          const lists = {};
+          const { hash, } = this;
+          Object.keys(hash).forEach((e) => {
+            const o = hash[e];
+            const { pointer: p, } = o;
+            if (o.type === 'p' && h[p] === true) {
+              if (lists[p] === undefined) {
+                lists[p] = [];
+              }
+              lists[p].push(e);
+            }
+          });
+          for (let j = 0; j < elem.length; j += 1) {
+            const f = elem[j];
+            if (set[f] === undefined) {
+              const list = lists[f];
+              if (Array.isArray(list)) {
+                const { hash, average, } = this;
+                const { sections: s, jumps: j, chaotic, } = hash[f];
+                hash[list[0]] = {
+                  type: 's',
+                  jumps: j.slice(0, j.length),
+                  sections: s.slice(0, s.length),
+                  chaotic,
+                };
+                const {
+                  occupy,
+                  bare,
+                } = average[f];
+                average[list[0]] = {
+                  occupy,
+                  bare,
+                }
+                for (let i = 1; i < list.length; i += 1) {
+                  hash[list[i]] = {
+                    type: 'p',
+                    pointer: list[0],
+                  };
+                }
+              }
+              const sections = this.calcSections(section, datas, f);
               await this.cacheSections(sections, datas, f);
             }
           }
-        }
-      }
-      if (arrange === true && filters !== undefined) {
-        records = this.arrangeRecords(datas, section, filters);
-      } else {
-        const {
-          options: {
-            spaceOptimize,
-          },
-        } = this;
-        if (spaceOptimize === true) {
-          deepCopyRecord(l, r, l, records, datas, filters);
         } else {
-          records = datas.slice(section[0], section[1] + 1)
+          const elem = set[k];
+          const i = s[0];
+          if (k !== '*rest' && source[hash[i].pointer] === undefined) {
+            const p = hash[i].pointer;
+            const { sections: s, jumps: j, chaotic, } = this.hash[p];
+            hash[i] = {
+              type: 's',
+              jumps: j.slice(0, j.length),
+              sections: s.slice(0, s.length),
+              chaotic,
+            };
+            const {
+              occupy,
+              bare,
+            } = this.average[p];
+            average[i] = {
+              occupy,
+              bare,
+            };
+            for (let j = 1; j < elem.length; j += 1) {
+              hash[elem[j]] = {
+                type: 'p',
+                pointer: i,
+              };
+            }
+            const sections = this.calcSections(section, datas, i);
+            await this.cacheSections(sections, datas, i);
+            for (let j =0; j < elem.length; j += 1) {
+              const f = elem[j];
+              await this.cacheSections(sections, datas, f);
+            }
+          } else {
+            if (k !== '*rest') {
+              const s = this.hash[i].pointer;
+              const sections = this.calcSections(section, datas, s);
+              await this.cacheSections(sections, datas, s);
+              for (let j = 0; j < elem.length; j += 1) {
+                const f = set[k][j];
+                await this.cacheSections(sections, datas, f);
+              }
+            }
+          }
         }
+        if (arrange === true && filters !== undefined) {
+          records = this.arrangeRecords(datas, section, filters);
+        } else {
+          const {
+            options: {
+              spaceOptimize,
+            },
+          } = this;
+          if (spaceOptimize === true) {
+            deepCopyRecord(l, r, l, records, datas, filters);
+          } else {
+            records = datas.slice(section[0], section[1] + 1)
+          }
+        }
+        this.countSection(section);
       }
-      this.countSection(section);
+      records.forEach((record, i) => {
+        if (record === undefined) {
+          const [l, r] = section;
+          this.deleteDataById(l + i)
+        }
+      });
+      this.outputOperate('select');
+      this.checkMemory();
+      return records;
+    } catch (error) {
+      this.outputOperateError('select', error);
     }
-    records.forEach((record, i) => {
-      if (record === undefined) {
-        const [l, r] = section;
-        this.deleteDataById(l + i)
-      }
-    });
-    this.outputOperate('select');
-    this.checkMemory();
-    return records;
   }
 
   calcSections(section, datas, filter) {

@@ -7,8 +7,7 @@
           "node": "current"
         }
       },
-    ],
-    "minify"
+    ]
   ],
   "plugins": [
     [

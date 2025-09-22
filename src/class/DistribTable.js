@@ -176,6 +176,41 @@ class DistribTable extends Table {
     this.appendToLog('Class:(' + name + ') ████ & ████ ' + 'Operate:(' + operate + ') ████ & ████ ' + 'Topology:' + formatTables(tables));
   }
 
+  outputDistribOperateError(operate, error) {
+    if (typeof operate !== 'string') {
+      throw new Error('[Error] The parameter operate must be of string type.');
+    }
+    if (!(error instanceof Error)) {
+      throw new Error('[Error] Parameter error should be of error type.');
+    }
+    const {
+      tb,
+      options: {
+        debug,
+      },
+      constructor: {
+        name,
+      },
+    } = this;
+    operate = operate.split(' ').map((word) => {
+      return word[0].toUpperCase() + word.substring(1, word.length);
+    }).join(' ');
+    const tables = this.getTables();
+    if (debug === true) {
+      const {
+        fulmination,
+      } = this;
+      fulmination.scan(`
+        (+) red; bold: !! (+) bold: * Class "[ (+) black; bgRed: ` + name + `(+) bold: "] Operate "[ (+) black; bgRed: ` + operate + `(+) bold: "] An error occurred during execution. 2&
+        (+) bold: "[ (+) black; bgRed: Topology (+) bold: "] ++ * (+) underline: "b` + formatTables(tables) + `" &
+        (+) bold: "[ (+) black; bgRed: Date (+) bold: "] @@ * (+) underline: "b` + getGTMNowString() + `" 2&
+      `);
+    }
+    this.appendToLog('Class:(' + name + ') ████ & ████ ' + 'Operate:(' + operate + ') ████ & ████ ' + 'Topology:' + formatTables(tables));
+    this.addToLog(error.stack + '\n');
+    throw error;
+  }
+
   getAckPromises(callback) {
     if (typeof callback !== 'function') {
       throw new Error('[Error] Parameter callback should be a funciton type.');
@@ -196,30 +231,45 @@ class DistribTable extends Table {
   }
 
   async closeServer() {
-    await new Promise((resolve, reject) => {
-      this.getServer().close(() => {
-        resolve();
-      });
-    })
+    try {
+      await new Promise((resolve, reject) => {
+        this.getServer().close(() => {
+          resolve();
+        });
+      })
+      this.outputDistribOperate('close server');
+    } catch (error) {
+      this.outputDistribOperateError('close server', error);
+    }
   }
 
   closeClients() {
-    this.getClients().forEach((client) => {
-      client.destroySoon();
-    });
+    try {
+      this.getClients().forEach((client) => {
+        client.destroySoon();
+      });
+      this.outputDistribOperate('close client');
+    } catch (error) {
+      this.outputDistribOperateError('close server', error);
+    }
   }
 
   closeConnections() {
-    const { connections, } = this;
-    if (!Array.isArray(connections)) {
-      throw new Error('[Error] The connections is not an array type or the combine is not complete.');
+    try {
+      const { connections, } = this;
+      if (!Array.isArray(connections)) {
+        throw new Error('[Error] The connections is not an array type or the combine is not complete.');
+      }
+      if (connections.length === 0) {
+        throw new Error('[Error] The length of the connections is zero.Perhaps the combine was not completed;');
+      }
+      connections.forEach((connection) => {
+        connection.destroySoon();
+      });
+      this.outputDistribOperate('close connection');
+    } catch (error) {
+      this.outputDistribOperateError('close connection', error);
     }
-    if (connections.length === 0) {
-      throw new Error('[Error] The length of the connections is zero.Perhaps the combine was not completed;');
-    }
-    connections.forEach((connection) => {
-      connection.destroySoon();
-    });
   }
 
   getServer() {
@@ -247,57 +297,65 @@ class DistribTable extends Table {
   }
 
   async setUpServer() {
-    const {
-      tables: {
-        length,
-      },
-    } = this;
-    let count = 0;
-    this.connections = [];
-    this.server = await new Promise((resolve, reject) => {
-      const server = net.createServer((connection) => {
-        connection.on('data', (buf) => {
-          this.dealConnectionBuf(buf, connection);
+    try {
+      const {
+        tables: {
+          length,
+        },
+      } = this;
+      let count = 0;
+      this.connections = [];
+      this.server = await new Promise((resolve, reject) => {
+        const server = net.createServer((connection) => {
+          connection.on('data', (buf) => {
+            this.dealConnectionBuf(buf, connection);
+          });
+          count += 1;
+          this.connections.push(connection);
+          if (count === length) {
+            resolve(server);
+          }
         });
-        count += 1;
-        this.connections.push(connection);
-        if (count === length) {
-          resolve(server);
-        }
+        const { port, } = this;
+        server.on('error', (error) => {
+          throw error;
+        });
+        server.listen(port);
       });
-      const { port, } = this;
-      server.on('error', (error) => {
-        throw error;
-      });
-      server.listen(port);
-    });
-    const { server, } = this;
-    this.checkMemory();
-    this.outputDistribOperate('setUp server');
-    return server;
+      const { server, } = this;
+      this.checkMemory();
+      this.outputDistribOperate('setUp server');
+      return server;
+    } catch (error) {
+      this.outputDistribOperateError('setUp server');
+    }
   }
 
   async setUpClients() {
-    const { tables, } = this;
-    const clientPromises = tables.map((table) => {
-      const [ip, port] = table;
-      return new Promise((resolve, reject) => {
-        const client = net.createConnection(port, ip, () => {
-          client.ip = ip;
-          client.port = port;
-          resolve(client);
-        });
-        client.on('close', () => {
-          const { ip, port, } = client;
-          this.removeTable(ip, port);
+    try {
+      const { tables, } = this;
+      const clientPromises = tables.map((table) => {
+        const [ip, port] = table;
+        return new Promise((resolve, reject) => {
+          const client = net.createConnection(port, ip, () => {
+            client.ip = ip;
+            client.port = port;
+            resolve(client);
+          });
+          client.on('close', () => {
+            const { ip, port, } = client;
+            this.removeTable(ip, port);
+          });
         });
       });
-    });
-    this.clients = await Promise.all(clientPromises);
-    const { client, } = this;
-    this.checkMemory();
-    this.outputDistribOperate('setUp client');
-    return client;
+      this.clients = await Promise.all(clientPromises);
+      const { client, } = this;
+      this.checkMemory();
+      this.outputDistribOperate('setUp client');
+      return client;
+    } catch (error) {
+      this.outputDistribOperateError('setUp client', error);
+    }
   }
 
   dealConnectionBuf(buf, connection) {
@@ -373,37 +431,47 @@ class DistribTable extends Table {
   }
 
   removeTable(ip, port) {
-    const { tables, } = this;
-    for (let i = 0; i < tables.length; i += 1) {
-      const [tableIp, tablePort] = tables[i];
-      if (tableIp === ip && tablePort === port) {
-        tables.splice(i, 1);
-        const { clients, } = this;
-        if (Array.isArray(clients)) {
-          clients.splice(i, 1);
-          clients[i].destroySoon();
+    try {
+      const { tables, } = this;
+      for (let i = 0; i < tables.length; i += 1) {
+        const [tableIp, tablePort] = tables[i];
+        if (tableIp === ip && tablePort === port) {
+          tables.splice(i, 1);
+          const { clients, } = this;
+          if (Array.isArray(clients)) {
+            clients.splice(i, 1);
+            clients[i].destroySoon();
+          }
+          break;
         }
-        break;
       }
+      this.outputDistribOperate('remove table');
+    } catch (error) {
+      this.outputDistribOperateError('remove table', error);
     }
   }
 
   async addTable(ip, port) {
-    return new Promise((resolve, reject) => {
-      const client = net.createConnection(port, ip, () => {
-        client.ip = ip;
-        client.port = port;
-        resolve(client);
+    try {
+      await new Promise((resolve, reject) => {
+        const client = net.createConnection(port, ip, () => {
+          client.ip = ip;
+          client.port = port;
+          resolve(client);
+        });
+        client.on('close', () => {
+          const { ip, port, } = client;
+          this.removeTable(ip, port);
+        });
+        const { tables, clients, } = this;
+        tables.push([ip, port]);
+        clients.push(client);
       });
-      client.on('close', () => {
-        const { ip, port, } = client;
-        this.removeTable(ip, port);
-      });
-      const { tables, clients, } = this;
-      tables.push([ip, port]);
-      clients.push(client);
-    });
-    this.checkMemory();
+      this.checkMemory();
+      this.outputDistribOperate('remove table');
+    } catch (error) {
+      this.outputDistribOperateError('remove table', error);
+    }
   }
 
   checkCombine() {
@@ -414,19 +482,27 @@ class DistribTable extends Table {
   }
 
   async insertDistrib(cnt) {
-    this.checkCombine();
-    await this.insert(cnt);
-    this.outputDistribOperate('insert distrib');
+    try {
+      this.checkCombine();
+      await this.insert(cnt);
+      this.outputDistribOperate('insert distrib');
+    } catch (error) {
+      this.outputDistribOperateError('insert distrib', error);
+    }
   }
 
   async deleteExchangeDistrib(id, total) {
-    this.checkCombine();
-    await this.deleteExchange(id, total);
-    const ackPromises = this.getAckPromises((client) => {
-      client.write(getBinBuf([0, id, total]));
-    });
-    await Promise.all(ackPromises);
-    this.outputDistribOperate('deleteExchange distrib');
+    try {
+      this.checkCombine();
+      await this.deleteExchange(id, total);
+      const ackPromises = this.getAckPromises((client) => {
+        client.write(getBinBuf([0, id, total]));
+      });
+      await Promise.all(ackPromises);
+      this.outputDistribOperate('deleteExchange distrib');
+    } catch (error) {
+      this.outputDistribOperateError('deleteExchange distrib');
+    }
   }
 
   async deleteAllDistrib(ids) {
@@ -438,44 +514,60 @@ class DistribTable extends Table {
   }
 
   async deleteDistrib(id) {
-    this.checkCombine();
-    await this.delete(id);
-    const ackPromises = this.getAckPromises((client) => {
-      client.write(getBinBuf([1, id]));
-    });
-    await Promise.all(ackPromises);
-    this.outputDistribOperate('delete distrib');
+    try {
+      this.checkCombine();
+      await this.delete(id);
+      const ackPromises = this.getAckPromises((client) => {
+        client.write(getBinBuf([1, id]));
+      });
+      await Promise.all(ackPromises);
+      this.outputDistribOperate('delete distrib');
+    } catch (error) {
+      this.outputDistribOperateError('delete distrib', error);
+    }
   }
 
   async updateDistrib(obj) {
-    this.checkCombine();
-    await this.update(obj);
-    const ackPromises = this.getAckPromises((client) => {
-      client.write(getBinBuf([2, obj.id]))
-    });
-    await Promise.all(ackPromises);
-    this.outputDistribOperate('update distrib');
+    try {
+      this.checkCombine();
+      await this.update(obj);
+      const ackPromises = this.getAckPromises((client) => {
+        client.write(getBinBuf([2, obj.id]))
+      });
+      await Promise.all(ackPromises);
+      this.outputDistribOperate('update distrib');
+    } catch (error) {
+      this.outputDistribOperateError('update distrib', error);
+    }
   }
 
   async exchangeContentDistrib(id1, id2) {
-    this.checkCombine();
-    await this.exchangeContent(id1, id2);
-    const ackPromises = this.getAckPromises((client) => {
-      client.write(getBinBuf([3, id1, id2]))
-    });
-    await Promise.all(ackPromises);
-    this.outputDistribOperate('exchangeContent distrib');
+    try {
+      this.checkCombine();
+      await this.exchangeContent(id1, id2);
+      const ackPromises = this.getAckPromises((client) => {
+        client.write(getBinBuf([3, id1, id2]))
+      });
+      await Promise.all(ackPromises);
+      this.outputDistribOperate('exchangeContent distrib');
+    } catch (error) {
+      this.outputDistribOperateError('exchangeContent distrib', error);
+    }
   }
 
   async exchangeHighIndexDistrib(highId) {
-    this.checkCombine();
-    const mapping = await this.exchangeHighIndex(highId);
-    const ackPromises = this.getAckPromises((client) => {
-      client.write(getBinBuf([4, highId]))
-    });
-    await Promise.all(ackPromises);
-    this.outputDistribOperate('exchangeHighIndex distrib');
-    return mapping;
+    try {
+      this.checkCombine();
+      const mapping = await this.exchangeHighIndex(highId);
+      const ackPromises = this.getAckPromises((client) => {
+        client.write(getBinBuf([4, highId]))
+      });
+      await Promise.all(ackPromises);
+      this.outputDistribOperate('exchangeHighIndex distrib');
+      return mapping;
+    } catch (error) {
+      this.outputDistribOperateError('exchangeHighIndex distrib');
+    }
   }
 }
 
