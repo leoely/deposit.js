@@ -188,7 +188,7 @@ function assignContent(record1, record2) {
 }
 
 class Table {
-  constructor(tb, options) {
+  constructor(tb, options = {}) {
     if (typeof tb !== 'string') {
       throw new Error('[Error] The parameter tb should be of string type.');
     }
@@ -199,8 +199,8 @@ class Table {
       logLevel: 0,
       logPath: '/var/log/deposit.js',
     };
+    this.dealOptions(options);
     this.options = Object.assign(defaultOptions, options);
-    this.dealOptions(this.options);
     this.hash = {};
     this.datas = [];
     this.average = {};

@@ -11,7 +11,7 @@ describe('[Class] Select high index test cases;', () => {
     await new Promise((resolve, reject) => {
       setTimeout(() => {
         resolve();
-      }, 700);
+      }, 900);
     });
 
     const global_users_tb = global.users.tb;
