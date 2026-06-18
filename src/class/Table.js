@@ -192,6 +192,9 @@ class Table {
     if (typeof tb !== 'string') {
       throw new Error('[Error] The parameter tb should be of string type.');
     }
+    if (typeof options !== 'object' && options !== null) {
+      throw new Error('[Error] The parameter options should be of type object.');
+    }
     this.tb = tb;
     const defaultOptions = {
       debug: false,
