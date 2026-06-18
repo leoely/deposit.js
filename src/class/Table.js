@@ -1,10 +1,10 @@
 import os from 'os';
 import {
-  getGTMNowString,
   checkLogPath,
   addToLog,
   appendToLog,
   logOutOfMemory,
+  getGTMNowString,
 } from 'manner.js/server';
 import deleteRecord from '~/lib/deleteRecord';
 import insertRecord from '~/lib/insertRecord';
