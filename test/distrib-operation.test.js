@@ -1,5 +1,5 @@
 import { describe, expect, test, } from '@jest/globals';
-import { getOwnIpAddresses, wrapIpv6, } from 'manner.js/server';
+import { getOwnIpAddresses, } from 'manner.js/server';
 import DistribTable from '~/class/DistribTable';
 import DistribUsers from '~/class/table/MysqlDistribUsers';
 import global from '~/obj/testGlobal';
@@ -101,11 +101,11 @@ describe('[Class] Distributed operation test cases;', () => {
     }
 
     const [ipAddress] = getOwnIpAddresses();
-    const { ipv4, } = ipAddress;
+    const { ipv6, } = ipAddress;
     const tables = [
-      [ipv4, 8000],
-      [ipv4, 8001],
-      [ipv4, 8002],
+      [ipv6, 8000],
+      [ipv6, 8001],
+      [ipv6, 8002],
     ];
     global.users.tb3 = new DistribUsers(8002, tables);
     const global_users_tb3 = global.users.tb3;

@@ -1,10 +1,12 @@
 import net from 'net';
 import {
   getOwnIpAddresses,
-  nonZeroByteArray,
+  ByteArray,
   getGTMNowString,
 } from 'manner.js/server';
 import Table from './Table';
+
+const nonZeroByteArray = new ByteArray({ size: 256n, shift: 1n, });
 
 function getBinBuf(params) {
   if (!Array.isArray(params)) {
@@ -126,11 +128,23 @@ class DistribTable extends Table {
       let flag = true;
       for (let i = 0; i< locations.length ; i += 1) {
         const location = locations[i];
-        if (table.join(':') === location) {
-          const [ip] = table;
-          this.ip = ip;
-          flag = false;
-          break;
+        const [ip] = table;
+        if (net.isIPv4(ip)) {
+          if (table.join(':') === location) {
+            const [ip] = table;
+            this.ip = ip;
+            flag = false;
+            break;
+          }
+        } else if (net.isIPv6(ip)) {
+          const [ip, port] = table;
+          const formatTable = ['[' + ip + ']', port];
+          if (formatTable.join(':') === location) {
+            const [ip] = table;
+            this.ip = ip;
+            flag = false;
+            break;
+          }
         }
       }
       return flag;
