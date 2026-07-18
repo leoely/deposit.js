@@ -1051,7 +1051,22 @@ class Table {
     if (counts[id] !== undefined) {
       counts[id] = 0;
     } else {
-      counts.splice(id, 1);;
+      const {
+        length,
+      } = counts;
+      if (id === length - 1) {
+        let number = 0;
+        for (let i = 0; i >= 0; i -= 1) {
+          if (counts[i] === 0 || counts[i] === undefined) {
+            number += 1;
+          } else {
+            break;
+          }
+        }
+        counts.length = length - number;
+      } else {
+        delete counts[id];
+      }
     }
     const { length, } = counts;
     if (id === length) {
@@ -1382,7 +1397,7 @@ class Table {
       }
       if (enter !== undefined) {
         if (typeof enter !== 'boolean') {
-          throw new Error('[Error] The parameter pass should be of boolean type.');
+          throw new Error('[Error] The parameter enter should be of boolean type.');
         }
       }
       if (enter === undefined || enter === true) {

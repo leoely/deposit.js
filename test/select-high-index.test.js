@@ -36,7 +36,7 @@ describe('[Class] Select high index test cases;', () => {
     const users7 = await global_users_tb.select([1, 2], ['id', 'gender']);
     expect(JSON.stringify(users7)).toMatch('[{\"id\":1,\"gender\":1},{\"id\":2,\"gender\":1}]');
     const users8 = await global_users_tb.select([28, 32]);
-    expect(JSON.stringify(users8)).toMatch('[{\"name\":\"lsla\",\"age\":49,\"country\":\"america\",\"id\":28,\"gender\":0,\"city\":\"long beach\"},{\"name\":\"poppy\",\"age\":58,\"country\":\"america\",\"id\":29,\"gender\":0,\"city\":\"oakland\"},{\"name\":\"susan\",\"age\":39,\"country\":\"america\",\"id\":0,\"gender\":0,\"city\":\"minneapolis\"},{\"name\":\"abigail\",\"age\":29,\"country\":\"america\",\"id\":2,\"gender\":0,\"city\":\"tulsa\"},{\"name\":\"elizabeth\",\"age\":58,\"country\":\"america\",\"id\":16,\"gender\":0,\"city\":\"bakeersfield\"}]');
+    expect(JSON.stringify(users8)).toMatch('[{\"name\":\"lsla\",\"age\":49,\"country\":\"america\",\"id\":28,\"gender\":0,\"city\":\"long beach\"},{\"name\":\"poppy\",\"age\":58,\"country\":\"america\",\"id\":29,\"gender\":0,\"city\":\"oakland\"},{\"name\":\"susan\",\"age\":39,\"country\":\"america\",\"id\":0,\"gender\":0,\"city\":\"minneapolis\"},{\"name\":\"abigail\",\"age\":29,\"country\":\"america\",\"id\":3,\"gender\":0,\"city\":\"tulsa\"},{\"name\":\"elizabeth\",\"age\":58,\"country\":\"america\",\"id\":4,\"gender\":0,\"city\":\"bakeersfield\"}]');
     const mappings1 = global_users_tb.getMappings();
     for (let i = 0; i < mappings1.length; i += 1) {
       const [highId, lowId] = mappings1[i];
