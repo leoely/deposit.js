@@ -531,7 +531,6 @@ class Table {
         this.full = false;
       }
       this.outOfOrder = true;
-      this.checkMemory();
     }
   }
 
