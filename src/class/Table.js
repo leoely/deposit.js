@@ -262,6 +262,24 @@ class Table {
     this.checkMemory();
   }
 
+  addSystemNotice(phrase, callback) {
+    if (typeof phrase !== 'string') {
+      throw new Error('[Error] The parameter phase should be a string type.');
+    }
+    if (typeof callback !== 'function') {
+      throw new Error('[Error] The parameter callback should be a function type.');
+    }
+    switch (phrase) {
+      case 'mem>chk': {
+        const { notice, } = this;
+        notice.attach('mem>chk', callback);
+        break;
+      }
+      default:
+        throw new Error('[Error] The current system notification phrase does not exist.');
+    }
+  }
+
   hasSqls() {
     let ans = false;
     const {
@@ -484,6 +502,13 @@ class Table {
     if (freemem > safeMemoryCapacity) {
       ans = true;
     } else {
+      const {
+        notice,
+      } = this;
+      const callback = notice.gain('mem>chk');
+      if (typeof callback === 'function') {
+        callback();
+      }
       const {
         options: {
           debug,
