@@ -339,7 +339,6 @@ class DistribTable extends Table {
       const { server, } = this;
       this.checkMemory();
       this.outputDistribOperate('setUp server');
-      return server;
     } catch (error) {
       this.outputDistribOperateError('setUp server');
     }
@@ -366,7 +365,6 @@ class DistribTable extends Table {
       const { client, } = this;
       this.checkMemory();
       this.outputDistribOperate('setUp client');
-      return client;
     } catch (error) {
       this.outputDistribOperateError('setUp client', error);
     }

@@ -1,4 +1,5 @@
 import os from 'os';
+import { NamespaceRouter, } from 'advising.js';
 import {
   checkLogPath,
   addToLog,
@@ -10,11 +11,6 @@ import deleteRecord from '~/lib/deleteRecord';
 import insertRecord from '~/lib/insertRecord';
 import selectRecord from '~/lib/selectRecord';
 import updateRecord from '~/lib/updateRecord';
-import global from '~/obj/global';
-
-const {
-  fulmination,
-} = global;
 
 function getLength(section) {
   if (!Array.isArray(section)) {
@@ -201,6 +197,7 @@ class Table {
       memorySafeLine: 1000_000,
       logLevel: 0,
       logPath: '/var/log/deposit.js',
+      safeMemoryCapacity: 10 * 1024 * 1024,
     };
     this.dealOptions(options);
     this.options = Object.assign(defaultOptions, options);
@@ -211,6 +208,12 @@ class Table {
     this.outOfOrder = true;
     this.full = true;
     this.sqls = [];
+    this.notice = new NamespaceRouter({
+      logLevel: 0,
+      logInterval: 20,
+      interception: undefined,
+      debug: false,
+    });
     if (this.hasSqls()) {
       this.sqls = [];
     }
@@ -222,7 +225,7 @@ class Table {
     } = this;
     checkLogPath(logPath);
     if (debug === true) {
-      this.fulmination = fulmination;
+      this.fulmination = new Fulmination();
       fulmination.scan(`
       [+] bold:
       |
@@ -461,15 +464,24 @@ class Table {
   }
 
   checkMemory() {
+    const { options, } = this;
+    if (options.safeMemoryCapacity === undefined) {
+      options.safeMemoryCapacity = 0;
+    }
+    const {
+      options: {
+        safeMemoryCapacity,
+      },
+    } = this;
     const {
       temporaryMemorySwitch,
     } = this;
     let freemem = os.freemem();
     if (temporaryMemorySwitch === true) {
-      freemem = 0;
+      freemem = safeMemoryCapacity;
     }
     let ans = false;
-    if (freemem > 0) {
+    if (freemem > safeMemoryCapacity) {
       ans = true;
     } else {
       const {
@@ -493,13 +505,12 @@ class Table {
     return ans;
   }
 
-  // @FIXME
-  //setTemporaryMemorySwitch(temporaryMemorySwitch) {
-    //if (typeof temporaryMemorySwtich !== 'boolean') {
-      //throw new Error('[Error] Parameter temporaryMemorySwtich should be of boolean type.');
-    //}
-    //this.temporaryMemorySwitch = temporaryMemorySwitch;
-  //}
+  setTemporaryMemorySwitch(temporaryMemorySwitch) {
+    if (typeof temporaryMemorySwitch !== 'boolean') {
+      throw new Error('[Error] Parameter temporaryMemorySwitch should be of boolean type.');
+    }
+    this.temporaryMemorySwitch = temporaryMemorySwitch;
+  }
 
   emptyCache() {
     this.hash = {};
