@@ -1026,60 +1026,16 @@ class Table {
     if (datas[id] !== undefined) {
       Object.keys(datas[id]).forEach((f) => {
         const groove = hash[f];
-        if (groove.type === 's') {
-          const { sections, jumps, } = groove;
-          sections.forEach((s, i) => {
-            const [l, r] = s;
-            if (id === l) {
-              if (r - l === 0) {
-                sections.splice(i, 1);
-                delete jumps[id];
-                this.updateAverageDeleteOne(f);
-              } else {
-                sections[i] = [l + 1, r];
-                delete jumps[l];
-                jumps[l + 1] = [r - 1, i];
-                const section = sections[i - 1];
-                if (section !== undefined) {
-                  const [_, r1] = section;
-                  if (l + 1 > r1) {
-                    jumps[r1 + 1] = [l, i - 1];
-                  }
-                }
-                this.updateAverageDeleteOne(f);
-              }
-            }
-            if (id === r) {
-              if (r - l === 0) {
-                sections.splice(i, 1);
-                delete jumps[id];
-                this.updateAverageDeleteOne(f);
-              } else {
-                sections[i] = [l, r - 1];
-                jumps[l] = [r - 2, i];
-                const section = sections[i + 1];
-                if (section !== undefined) {
-                  const [l1] = section;
-                  if (l1 - 1 > r) {
-                    delete jumps[r + 1];
-                    jumps[r] = [l1 - 1, i];
-                  }
-                }
-                this.updateAverageDeleteOne(f);
-              }
-            }
-            if (id > l && id < r) {
-              sections.splice(i, 1, [l, id - 1], [id + 1, r]);
-              delete jumps[id];
-              jumps[l] = [id - 1, i];
-              jumps[id + 1] = [r - 1, i + 1];
-              this.updateAverageDeleteOne(f);
-            }
-          });
-        }
+        this.deleteSpecificGroove(groove, f, id);
       });
     } else {
-      this.dealEmptySlot(id);
+      const { hash, columns, } = this;
+      if (Array.isArray(columns)) {
+        columns.forEach((f) => {
+          const groove = hash[f];
+          this.deleteSpecificGroove(groove, f, id);
+        });
+      }
     }
     datas[id] = undefined;
     const { counts, } = this;
@@ -1121,62 +1077,55 @@ class Table {
     }
   }
 
-  // @FIXME
-  dealEmptySlot(id) {
-    const { hash, columns, } = this;
-    if (Array.isArray(columns)) {
-      columns.forEach((f) => {
-        const groove = hash[f];
-        if (groove && groove.type === 's') {
-          const { sections, jumps, } = groove;
-          sections.forEach((s, i) => {
-            const [l, r] = s;
-            if (id === l) {
-              if (r - l === 0) {
-                sections.splice(i, 1);
-                delete jumps[id];
-                this.updateAverageDeleteOne(f);
-              } else {
-                sections[i] = [l + 1, r];
-                delete jumps[l];
-                jumps[l + 1] = [r - 1, i];
-                const section = sections[i - 1];
-                if (section !== undefined) {
-                  const [_, r1] = section;
-                  if (l + 1 > r1) {
-                    jumps[r1 + 1] = [l, i - 1];
-                  }
-                }
-                this.updateAverageDeleteOne(f);
+  deleteSpecificGroove(groove, f, id) {
+    if (groove && groove.type === 's') {
+      const { sections, jumps, } = groove;
+      sections.forEach((s, i) => {
+        const [l, r] = s;
+        if (id === l) {
+          if (r - l === 0) {
+            sections.splice(i, 1);
+            delete jumps[id];
+            this.updateAverageDeleteOne(f);
+          } else {
+            sections[i] = [l + 1, r];
+            delete jumps[l];
+            jumps[l + 1] = [r - 1, i];
+            const section = sections[i - 1];
+            if (section !== undefined) {
+              const [_, r1] = section;
+              if (l + 1 > r1) {
+                jumps[r1 + 1] = [l, i - 1];
               }
             }
-            if (id === r) {
-              if (r - l === 0) {
-                sections.splice(i, 1);
-                delete jumps[id];
-                this.updateAverageDeleteOne(f);
-              } else {
-                sections[i] = [l, r - 1];
-                jumps[l] = [r - 2, i];
-                const section = sections[i + 1];
-                if (section !== undefined) {
-                  const [l1] = section;
-                  if (l1 - 1 > r) {
-                    delete jumps[r + 1];
-                    jumps[r] = [l1 - 1, i];
-                  }
-                }
-                this.updateAverageDeleteOne(f);
+            this.updateAverageDeleteOne(f);
+          }
+        }
+        if (id === r) {
+          if (r - l === 0) {
+            sections.splice(i, 1);
+            delete jumps[id];
+            this.updateAverageDeleteOne(f);
+          } else {
+            sections[i] = [l, r - 1];
+            jumps[l] = [r - 2, i];
+            const section = sections[i + 1];
+            if (section !== undefined) {
+              const [l1] = section;
+              if (l1 - 1 > r) {
+                delete jumps[r + 1];
+                jumps[r] = [l1 - 1, i];
               }
             }
-            if (id > l && id < r) {
-              sections.splice(i, 1, [l, id - 1], [id + 1, r]);
-              delete jumps[id];
-              jumps[l] = [id - 1, i];
-              jumps[id + 1] = [r - 1, i + 1];
-              this.updateAverageDeleteOne(f);
-            }
-          });
+            this.updateAverageDeleteOne(f);
+          }
+        }
+        if (id > l && id < r) {
+          sections.splice(i, 1, [l, id - 1], [id + 1, r]);
+          delete jumps[id];
+          jumps[l] = [id - 1, i];
+          jumps[id + 1] = [r - 1, i + 1];
+          this.updateAverageDeleteOne(f);
         }
       });
     }
