@@ -7,6 +7,7 @@ import {
   appendToLog,
   logOutOfMemory,
   getGTMNowString,
+  insufficientDiskSpace,
 } from 'manner.js/server';
 import deleteRecord from '~/lib/deleteRecord';
 import insertRecord from '~/lib/insertRecord';
@@ -394,6 +395,11 @@ class Table {
       throw new Error('[Error] The parameter callback should be a function type.');
     }
     switch (phrase) {
+      case 'disk>rem': {
+        const { notice, } = this;
+        notice.attach('disk>rem', callback);
+        break;
+      }
       case 'mem>chk': {
         const { notice, } = this;
         notice.attach('mem>chk', callback);
@@ -672,7 +678,7 @@ class Table {
       if (debug === true) {
         fulmination.scan(`
           (+) red; bold: !! (+) bold: * Class "[ (+) black; bgRed: ` + name + `(+) bold: "] Situation "[ (+) black; bgWhite: Memory  (+) bold: "] Usage exhausted. 2&
-          (+) bold: "[ (+) black; bgRed: FREEMEM (+) bold: "] !! * (+) underline: Only the remaining ones remain * (+) bold: "[ (+) black; bgWhite: 0 (+) bold: "] &
+          (+) bold: "[ (+) black; bgRed: FREEMEM (+) bold: "] !! * (+) underline: Only the remaining * (+) bold: "[ (+) black; bgWhite: ${freemem} (+) bold: "] &
           (+) bold: "[ (+) black; bgRed: Date (+) bold: "] @@ * (+) underline: "b ` + getGTMNowString() + `" 2&
         `);
       }

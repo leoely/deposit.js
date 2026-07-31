@@ -2104,9 +2104,9 @@ bl@^5.0.0:
     readable-stream "^3.4.0"
 
 brace-expansion@^1.1.7:
-  version "1.1.15"
-  resolved "https://registry.yarnpkg.com/brace-expansion/-/brace-expansion-1.1.15.tgz#a6d90d54067236e5f42570a3b7378d594d9b7738"
-  integrity sha512-EwOCDEex4quD37XhqM3omwtMoJjr//isUZz1JopUNWms+4Z2ViyM/k1YIRePpoVNnQhENnxtFjLaxNHrT7xIUg==
+  version "1.1.18"
+  resolved "https://registry.yarnpkg.com/brace-expansion/-/brace-expansion-1.1.18.tgz#3ce74d89885136be1535341f8c3d4425c29a5cab"
+  integrity sha512-Edep/X9fGqVNmzKBVsDYIOtD+z1tuezV70LBjdCst9Tqu76lsnvRiZ6oTic1n+/BIwX6QDGAO94PN4N2SADvtw==
   dependencies:
     balanced-match "^1.0.0"
     concat-map "0.0.1"
@@ -4456,10 +4456,10 @@ makeerror@1.0.12:
   dependencies:
     tmpl "1.0.5"
 
-manner.js@^1.1.4:
-  version "1.1.4"
-  resolved "https://registry.yarnpkg.com/manner.js/-/manner.js-1.1.4.tgz#f0ebd15dac526a3b6a348dd70e2b086e0b128577"
-  integrity sha512-AME35QhegDgL2Q8AYOM/di+38Vi8b0cfWnUUKFaSycC0xX4uVemmT6kHHJY7wyzSSTfiQd0ynz4ZdLnRNULJ4A==
+manner.js@^1.1.4, manner.js@^1.2.1:
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/manner.js/-/manner.js-1.2.1.tgz#edca5b1de2196d8d1d60681eb0208c895464b626"
+  integrity sha512-U/viVzL/cDN90K2YkranOmAnnihL6UJAekRyRq0WT+aUKAgDXvlskfjlzLJSttitj0P2FxL7/pQDZhnOkECNSw==
   dependencies:
     babel-plugin-root-import "^6.6.0"
     gulp "^4.0.2"
@@ -4604,12 +4604,7 @@ named-placeholders@^1.1.6:
   dependencies:
     lru.min "^1.1.0"
 
-nan@^2.12.1:
-  version "2.27.0"
-  resolved "https://registry.yarnpkg.com/nan/-/nan-2.27.0.tgz#804e389f4c0e39b729a17eca85c80ebc4355c4c4"
-  integrity sha512-hC+0LidcL3XE4rp1C4H54KujgXKzbfyTngZTwBByQxsOxCEKZT0MPQ4hOKUH2jU1OYstqdDH4onyHPDzcV0XdQ==
-
-nan@^2.18.0:
+nan@^2.12.1, nan@^2.18.0:
   version "2.28.0"
   resolved "https://registry.yarnpkg.com/nan/-/nan-2.28.0.tgz#126717fd359d5a03d3edf7c44e6ce9b707fb57f5"
   integrity sha512-fTsDz99OTq2sVePhGdp4qQhggZFtKr64ZNVyVajRKtMOkJxYekplBh577PiJB12v/D3s2E5cGtOI45LWp6rnLQ==
