@@ -1,4 +1,5 @@
 import os from 'os';
+import disk from 'diskusage';
 import { NamespaceRouter, } from 'advising.js';
 import {
   checkLogPath,
@@ -183,6 +184,15 @@ function assignContent(record1, record2) {
   });
 }
 
+async function diskUsage() {
+  const homedir = os.homedir();
+  const diskUsage = await disk.check(homedir);
+  return diskUsage;
+}
+
+const temporaryDiskAvailableKey = Symbol('temporaryDiskAvailable');
+const temporaryUpdateDiskAvailableKey = Symbol('temporaryUpdateDiskAvailable');
+
 class Table {
   constructor(tb, options = {}) {
     if (typeof tb !== 'string') {
@@ -197,7 +207,11 @@ class Table {
       memorySafeLine: 1000_000,
       logLevel: 0,
       logPath: '/var/log/deposit.js',
+      acquireAvailableDelta: false,
+      temporaryDiskAvailable: -1,
+      temporaryDiskSwitch: false,
       safeMemoryCapacity: 10 * 1024 * 1024,
+      minimumStorageCapacity: 5 * 1024 ** 3,
     };
     this.dealOptions(options);
     this.options = Object.assign(defaultOptions, options);
@@ -260,6 +274,114 @@ class Table {
       }
     }
     this.checkMemory();
+  }
+
+  async insertNote(type, connection, tb, objs, instance) {
+    const availableDelta = await this.acquireAvailableDelta(async () => {
+      await insertRecord(type, connection, tb, objs, instance);
+    });
+    this[temporaryUpdateDiskAvailableKey](availableDelta);
+  }
+
+  async deleteNote(type, connection, tb, id, instance) {
+    const availableDelta = await this.acquireAvailableDelta(async () => {
+      await deleteRecord(type, connection, tb, id, instance);
+    });
+    this[temporaryUpdateDiskAvailableKey](availableDelta);
+  }
+
+  async selectNote(type, connection, tb, section, filters, instance) {
+    const availableDelta = await this.acquireAvailableDelta(async () => {
+      await selectRecord(type, connection, tb, section, filters, instance);
+    });
+    this[temporaryUpdateDiskAvailableKey](availableDelta);
+  }
+
+  async updateNote(type, connection, tb, obj, instance) {
+    const availableDelta = await this.acquireAvailableDelta(async () => {
+      await updateRecord(type, connection, tb, obj, instance);
+    });
+    this[temporaryUpdateDiskAvailableKey](availableDelta);
+  }
+
+  async acquireAvailableDelta(callback) {
+    if (typeof callback !== 'function') {
+      throw new Error('[Error] The parameter callback should be of function type.')
+    }
+    const {
+      options: {
+        acquireAvailableDelta,
+      },
+    } = this;
+    if (acquireAvailableDelta === true) {
+      this.beforeAvailable = await this.available(true);
+    }
+    await callback();
+    if (acquireAvailableDelta === true) {
+      const { beforeAvailable, } = this;
+      const afterAvailable = await this.available(true);
+      return beforeAvailable - afterAvailable;
+    } else {
+      return -1;
+    }
+  }
+
+  async [temporaryUpdateDiskAvailableKey](availableDelta) {
+      const {
+        options: {
+          temporaryDiskSwitch,
+        },
+      } = this;
+      if (temporaryDiskSwitch === true) {
+        this[temporaryDiskAvailableKey] -= availableDelta;
+      }
+    }
+
+  async avaiable(flag) {
+    const {
+      options: {
+        temporaryDiskSwitch,
+      },
+    } = this;
+    if (flag !== undefined) {
+      if (typeof flag !== 'boolean') {
+        throw new Error('[Error] The parameter flag should be of boolean type.');
+      }
+    }
+    if (flag === undefined) {
+      if (temporaryDiskSwitch === true) {
+        return this[temporaryDiskAvailableKey];
+      } else {
+        const diskUsage = await this.diskUsage();
+        return diskUsage.available;
+      }
+    } else {
+      if (flag === true) {
+        const diskUsage = await this.diskUsage();
+        return diskUsage.available;
+      } else {
+        return this[temporaryDiskAvailableKey];
+      }
+    }
+  }
+
+  setTemporaryDiskSwitch(temporaryDiskSwitch) {
+    if (typeof temporaryDiskSwitch !== 'boolean') {
+      throw new Error('[Error] Parameter temporaryDiskSwtich should be of boolean type.');
+    }
+    this.options.temporaryDiskSwitch = temporaryDiskSwitch;
+    const {
+      options: {
+        temporaryDiskAvailable,
+      },
+    } = this;
+    if (temporaryDiskSwitch === true) {
+      const {
+        options,
+      } = this;
+      options.acquireAvailableDelta = true;
+      this[temporaryDiskAvailableKey] = temporaryDiskAvailable;
+    }
   }
 
   addSystemNotice(phrase, callback) {
@@ -449,6 +571,10 @@ class Table {
       memorySafeLine,
       logPath,
       logLevel,
+      acquireAvailableDelta,
+      temporaryDiskAvailable,
+      temporaryDiskSwitch,
+      minimumStorageCapacity,
     } = options;
     if (typeof type !== 'string') {
       throw new Error('[Error] The option type should be a string.');
@@ -477,6 +603,29 @@ class Table {
     if (logLevel !== undefined) {
       if (!Number.isInteger(logLevel)) {
         throw new Error('[Error] Option logLevel should be of integer type.');
+      }
+    }
+    if (temporaryDiskAvailable !== undefined) {
+      if (!Number.isInteger(temporaryDiskAvailable)) {
+        throw new Error('[Eror] Option temporaryDiskAvailable should be of integer type.');
+      }
+    }
+    if (acquireAvailableDelta !== undefined) {
+      if (typeof acquireAvailableDelta !== 'boolean') {
+        throw new Error('[Error] Option acquireAvailableDelta should be of boolean type.');
+      }
+    }
+    if (temporaryDiskSwitch !== undefined) {
+      if (typeof temporaryDiskSwitch !== 'boolean') {
+        throw new Error('[Error] Option temporaryDiskSwitch should be of boolean type.');
+      }
+    }
+    if (minimumStorageCapacity !== undefined) {
+      if (!Number.isInteger(minimumStorageCapacity)) {
+        throw new Error('[Error] Option minimumStorageCapacity should be of integer.');
+      }
+      if (!(minimumStorageCapacity > 0)) {
+        throw new Error('[Error] Option minimumStorageCapacity should be a postive integer.');
       }
     }
   }
@@ -1003,9 +1152,9 @@ class Table {
           }
           record.id = id;
           if (this.hasSqls()) {
-            await updateRecord(type, connection, tb, record, this);
+            await this.updateNote(type, connection, tb, record, this);
           } else {
-            await updateRecord(type, connection, tb, record);
+            await this.updateNote(type, connection, tb, record);
           }
         }
         this.deleteDataById(total - 1);
@@ -1177,9 +1326,9 @@ class Table {
         tb,
       } = this;
       if (this.hasSqls()) {
-        await updateRecord(type, connection, tb, obj, this);
+        await this.updateNote(type, connection, tb, obj, this);
       } else {
-        await updateRecord(type, connection, tb, obj);
+        await this.updateNote(type, connection, tb, obj);
       }
       this.deleteDataById(obj.id);
       this.outOfOrder = true;
