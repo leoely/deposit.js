@@ -291,10 +291,12 @@ class Table {
   }
 
   async selectNote(type, connection, tb, section, filters, instance) {
+    let ans;
     const availableDelta = await this.acquireAvailableDelta(async () => {
-      await selectRecord(type, connection, tb, section, filters, instance);
+      ans = await selectRecord(type, connection, tb, section, filters, instance);
     });
     this[temporaryUpdateDiskAvailableKey](availableDelta);
+    return ans;
   }
 
   async updateNote(type, connection, tb, obj, instance) {
@@ -337,7 +339,7 @@ class Table {
       }
     }
 
-  async avaiable(flag) {
+  async available(flag) {
     const {
       options: {
         temporaryDiskSwitch,
@@ -352,12 +354,12 @@ class Table {
       if (temporaryDiskSwitch === true) {
         return this[temporaryDiskAvailableKey];
       } else {
-        const diskUsage = await this.diskUsage();
+        const diskUsage = await diskUsage();
         return diskUsage.available;
       }
     } else {
       if (flag === true) {
-        const diskUsage = await this.diskUsage();
+        const diskUsage = await diskUsage();
         return diskUsage.available;
       } else {
         return this[temporaryDiskAvailableKey];
@@ -938,9 +940,9 @@ class Table {
       const s = sections[i];
       let records;
       if (this.hasSqls()) {
-        records = await selectRecord(type, connection, tb, s, [filter], this);
+        records = await this.selectNote(type, connection, tb, s, [filter], this);
       } else {
-        records = await selectRecord(type, connection, tb, s, [filter]);
+        records = await this.selectNote(type, connection, tb, s, [filter]);
       }
       const [l, r] = s;
       if (records.length > 0) {
@@ -1087,15 +1089,15 @@ class Table {
       } = this;
       if (Array.isArray(cnt)) {
         if (this.hasSqls()) {
-          await insertRecord(type, connection, tb, cnt, this);
+          await this.insertNote(type, connection, tb, cnt, this);
         } else {
-          await insertRecord(type, connection, tb, cnt);
+          await this.insertNote(type, connection, tb, cnt);
         }
       } else {
         if (this.hasSqls()) {
-          await insertRecord(type, connection, tb, [cnt], this);
+          await this.insertNote(type, connection, tb, [cnt], this);
         } else {
-          await insertRecord(type, connection, tb, [cnt]);
+          await this.insertNote(type, connection, tb, [cnt]);
         }
       }
       this.outputOperate('insert');
@@ -1127,9 +1129,9 @@ class Table {
         const { tb, } = this;
         if (mem !== true) {
           if (this.hasSqls()) {
-            await deleteRecord(type, connection, tb, id, this);
+            await this.deleteNote(type, connection, tb, id, this);
           } else {
-            await deleteRecord(type, connection, tb, id);
+            await this.deleteNote(type, connection, tb, id);
           }
         }
         this.deleteDataById(id);
@@ -1140,15 +1142,15 @@ class Table {
           const { tb, } = this;
           let records;
           if (this.hasSqls()) {
-            records = await selectRecord(type, connection, tb, [total - 1, total - 1], undefined, this);
+            records = await this.selectNote(type, connection, tb, [total - 1, total - 1], undefined, this);
           } else {
-            records = await selectRecord(type, connection, tb, [total - 1, total - 1]);
+            records = await this.selectNote(type, connection, tb, [total - 1, total - 1]);
           }
           const record = records[0];
           if (this.hasSqls()) {
-            await deleteRecord(type, connection, tb, total - 1, this);
+            await this.deleteNote(type, connection, tb, total - 1, this);
           } else {
-            await deleteRecord(type, connection, tb, total - 1);
+            await this.deleteNote(type, connection, tb, total - 1);
           }
           record.id = id;
           if (this.hasSqls()) {
@@ -1300,9 +1302,9 @@ class Table {
         tb,
       } = this;
       if (this.hasSqls()) {
-        await deleteRecord(type, connection, tb, id, this);
+        await this.deleteNote(type, connection, tb, id, this);
       } else {
-        await deleteRecord(type, connection, tb, id);
+        await this.deleteNote(type, connection, tb, id);
       }
       this.deleteDataById(id);
       this.outOfOrder = true;
@@ -1351,9 +1353,9 @@ class Table {
         datas, tb,
       } = this;
       if (this.hasSqls()) {
-        record = await selectRecord(type, connection, tb, [id, id], undefined, this);
+        record = await this.selectNote(type, connection, tb, [id, id], undefined, this);
       } else {
-        record = await selectRecord(type, connection, tb, [id, id]);
+        record = await this.selectNote(type, connection, tb, [id, id]);
       }
     } else {
       record = await this.select([id, id], undefined, undefined, false);
@@ -1590,9 +1592,9 @@ class Table {
           } = this;
           const index = section[0];
           if (this.hasSqls()) {
-            records = await selectRecord(type, connection, tb, [index, index], undefined, this);
+            records = await this.selectNote(type, connection, tb, [index, index], undefined, this);
           } else {
-            records = await selectRecord(type, connection, tb, [index, index]);
+            records = await this.selectNote(type, connection, tb, [index, index]);
           }
           const record = records[0];
           this.columns = [];
