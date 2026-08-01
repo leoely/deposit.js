@@ -406,17 +406,6 @@ class DistribTable extends Table {
         break;
       }
       case 2: {
-        if (params.length !== 1) {
-          throw new Error('[Error] The parameters lengths do not match convertion.');
-        }
-        const [id] = params;
-        this.deleteDataById(Number(id));
-        this.outOfOrder = true;
-        this.full = false;
-        connection.write('ack');
-        break;
-      }
-      case 3: {
         if (params.length !== 2) {
           throw new Error('[Error] The parameters lengths do not match convertion.');
         }
@@ -428,7 +417,7 @@ class DistribTable extends Table {
         connection.write('ack');
         break;
       }
-      case 4: {
+      case 3: {
         if (params.length !== 1) {
           throw new Error('[Error] The parameters lengths do not match convertion.');
         }
@@ -544,7 +533,7 @@ class DistribTable extends Table {
       this.checkCombine();
       await this.update(obj);
       const ackPromises = this.getAckPromises((client) => {
-        client.write(getBinBuf([2, obj.id]))
+        client.write(getBinBuf([1, obj.id]))
       });
       await Promise.all(ackPromises);
       this.outputDistribOperate('update distrib');
@@ -558,7 +547,7 @@ class DistribTable extends Table {
       this.checkCombine();
       await this.exchangeContent(id1, id2);
       const ackPromises = this.getAckPromises((client) => {
-        client.write(getBinBuf([3, id1, id2]))
+        client.write(getBinBuf([2, id1, id2]))
       });
       await Promise.all(ackPromises);
       this.outputDistribOperate('exchangeContent distrib');
@@ -572,7 +561,7 @@ class DistribTable extends Table {
       this.checkCombine();
       const mapping = await this.exchangeHighIndex(highId);
       const ackPromises = this.getAckPromises((client) => {
-        client.write(getBinBuf([4, highId]))
+        client.write(getBinBuf([3, highId]))
       });
       await Promise.all(ackPromises);
       this.outputDistribOperate('exchangeHighIndex distrib');
