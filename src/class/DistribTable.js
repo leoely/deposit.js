@@ -381,13 +381,27 @@ class DistribTable extends Table {
     }
     const bigInt1 = nonZeroByteArray.toInt(segments.shift())
     const code = Number(bigInt1);
-    const params = segments.map((segment, index) => {
-      return nonZeroByteArray.toInt(segment);
-    });
+    let params;
+    switch (code) {
+      case 4:
+        params = segments.map((segment, index) => {
+          switch (index) {
+            case 0:
+              return segment.toString();
+            case 1:
+              return new Function('return ' + segment.toString())();
+          }
+        });
+        break;
+      default:
+        params = segments.map((segment) => {
+          return nonZeroByteArray.toInt(segment);
+        });
+    }
     switch (code) {
       case 0: {
         if (params.length !== 2) {
-          throw new Error('[Error] The remaining parameter lengths do not match convertion.');
+          throw new Error('[Error] The parameter length should be equal to two.');
         }
         const [id, total] = params;
         this.deleteExchange(Number(id), Number(total), true);
@@ -396,7 +410,7 @@ class DistribTable extends Table {
       }
       case 1: {
         if (params.length !== 1) {
-          throw new Error('[Error] The parameter lengths do not match convertion.');
+          throw new Error('[Error] The parameter length should be equal to one.');
         }
         const [id] = params;
         this.deleteDataById(Number(id));
@@ -407,7 +421,7 @@ class DistribTable extends Table {
       }
       case 2: {
         if (params.length !== 2) {
-          throw new Error('[Error] The parameters lengths do not match convertion.');
+          throw new Error('[Error] The parameter length should be equal to two.');
         }
         const [id1, id2] = params;
         this.deleteDataById(Number(id1));
@@ -419,12 +433,20 @@ class DistribTable extends Table {
       }
       case 3: {
         if (params.length !== 1) {
-          throw new Error('[Error] The parameters lengths do not match convertion.');
+          throw new Error('[Error] The parameter length should be equal to one.');
         }
         const [highId] = params;
         const mapping = this.exchangeHighIndex(Number(highId), true);
         connection.write('ack');
         return mapping;
+      }
+      case 4: {
+        if (params.length !== 2) {
+          throw new Error('[Error] The parameter length should be equal to two.');
+        }
+        const [phrase, callback] = params;
+        this.addSystemNotice(phrase, callback);
+        connection.write('ack');
       }
       default:
         throw new Error('[Error] The code value should be in the range [0, 5]');
@@ -533,7 +555,7 @@ class DistribTable extends Table {
       this.checkCombine();
       await this.update(obj);
       const ackPromises = this.getAckPromises((client) => {
-        client.write(getBinBuf([1, obj.id]))
+        client.write(getBinBuf([1, obj.id]));
       });
       await Promise.all(ackPromises);
       this.outputDistribOperate('update distrib');
@@ -547,7 +569,7 @@ class DistribTable extends Table {
       this.checkCombine();
       await this.exchangeContent(id1, id2);
       const ackPromises = this.getAckPromises((client) => {
-        client.write(getBinBuf([2, id1, id2]))
+        client.write(getBinBuf([2, id1, id2]));
       });
       await Promise.all(ackPromises);
       this.outputDistribOperate('exchangeContent distrib');
@@ -561,13 +583,28 @@ class DistribTable extends Table {
       this.checkCombine();
       const mapping = await this.exchangeHighIndex(highId);
       const ackPromises = this.getAckPromises((client) => {
-        client.write(getBinBuf([3, highId]))
+        client.write(getBinBuf([3, highId]));
       });
       await Promise.all(ackPromises);
       this.outputDistribOperate('exchangeHighIndex distrib');
       return mapping;
     } catch (error) {
       this.outputDistribOperateError('exchangeHighIndex distrib');
+    }
+  }
+
+  async addSystemNoticeDistrib(phrase, callback) {
+    try {
+      this.checkCombine();
+      this.addSystemNotice(phrase, callback);
+      const ackPromises = this.getAckPromises((client) => {
+        client.write(getBinBuf([4, phrase, callback.toString()]));
+      });
+      await Promise.all(ackPromises);
+      this.outputDistribOperate('addSystemNotice distrib');
+      return mapping;
+    } catch (error) {
+      this.outputDistribOperateError('addSystemNotice distrib');
     }
   }
 }
