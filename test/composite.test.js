@@ -15,6 +15,11 @@ beforeAll(async () => {
 describe('[class] Composite test cases;', () => {
   test('Insert arbitrarliy records;', async () => {
     const global_noHighIndexUsers_tb = global.noHighIndexUsers.tb;
+    global_noHighIndexUsers_tb.setTemporaryDiskSwitch(true);
+    let notice = false;
+    global_noHighIndexUsers_tb.addSystemNotice('disk>rem', () => {
+      notice = true;
+    });
     await global_noHighIndexUsers_tb.insert([
       { id: first, name: 'royal', age: 34, gender: 1, city: 'athens', country: 'america', },
       { id: second, name: 'silas', age: 58, gender: 0, city: 'marion', country: 'america', },
@@ -22,6 +27,8 @@ describe('[class] Composite test cases;', () => {
       { id: fourth, name: 'oscar', age: 59, gender: 0, city: 'sylacauga', country: 'america', },
       { id: fifth, name: 'eleanor', age: 83, gender: 0, city: 'tuscaloosa', country: 'america', },
     ]);
+    expect(notice).toBe(true);
+    global_noHighIndexUsers_tb.setTemporaryDiskSwitch(false);
     const users = await global_noHighIndexUsers_tb.select([first, fifth]);
     expect(JSON.stringify(users)).toMatch('[{\"id\":41,\"name\":\"royal\",\"age\":34,\"gender\":1,\"city\":\"athens\",\"country\":\"america\"},{\"id\":42,\"name\":\"silas\",\"age\":58,\"gender\":0,\"city\":\"marion\",\"country\":\"america\"},{\"id\":43,\"name\":\"eloise\",\"age\":38,\"gender\":0,\"city\":\"prichard\",\"country\":\"america\"},{\"id\":44,\"name\":\"oscar\",\"age\":59,\"gender\":0,\"city\":\"sylacauga\",\"country\":\"america\"},{\"id\":45,\"name\":\"eleanor\",\"age\":83,\"gender\":0,\"city\":\"tuscaloosa\",\"country\":\"america\"}]');
   });

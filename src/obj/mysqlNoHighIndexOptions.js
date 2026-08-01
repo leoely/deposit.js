@@ -17,6 +17,8 @@ const options = {
   connection,
   memorySafeLine: 46,
   logLevel: 1,
+  temporaryDiskAvailable: 1,
+  minimumStorageCapacity: 1,
 };
 
 export default options;

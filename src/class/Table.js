@@ -228,6 +228,7 @@ class Table {
       logInterval: 20,
       interception: undefined,
       debug: false,
+      hideError: true,
     });
     if (this.hasSqls()) {
       this.sqls = [];
@@ -282,7 +283,7 @@ class Table {
       await insertRecord(type, connection, tb, objs, instance);
     });
     this[temporaryUpdateDiskAvailableKey](availableDelta);
-    this.checkDisk();
+    await this.checkDisk();
   }
 
   async updateNote(type, connection, tb, obj, instance) {
@@ -290,7 +291,7 @@ class Table {
       await updateRecord(type, connection, tb, obj, instance);
     });
     this[temporaryUpdateDiskAvailableKey](availableDelta);
-    this.checkDisk();
+    await this.checkDisk();
   }
 
   async acquireAvailableDelta(callback) {
@@ -370,6 +371,11 @@ class Table {
       } = this;
       options.acquireAvailableDelta = true;
       this[temporaryDiskAvailableKey] = temporaryDiskAvailable;
+    } else {
+      const {
+        options,
+      } = this;
+      options.acquireAvailableDelta = false;
     }
   }
 
@@ -669,7 +675,7 @@ class Table {
     return ans;
   }
 
-  checkDisk() {
+  async checkDisk() {
     const { options, } = this;
     if (options.minimumStorageCapacity === undefined) {
       options.minimumStorageCapacity = 0;
@@ -679,12 +685,12 @@ class Table {
         minimumStorageCapacity,
       },
     } = this;
-    const available = this.available();
-    if (available > minimumStorageCapacity) {
+    const available = await this.available();
+    if (available <= minimumStorageCapacity) {
       const {
         notice,
       } = this;
-      const callback = notice.gain('mem>chk');
+      const callback = notice.gain('disk>rem');
       if (typeof callback === 'function') {
         callback();
       }
