@@ -7,7 +7,7 @@ import {
   appendToLog,
   logOutOfMemory,
   getGTMNowString,
-  insufficientDiskSpace,
+  logInsufficientDiskSpace,
 } from 'manner.js/server';
 import deleteRecord from '~/lib/deleteRecord';
 import insertRecord from '~/lib/insertRecord';
@@ -704,7 +704,7 @@ class Table {
           (+) bold: "[ (+) black; bgRed: Date (+) bold: "] @@ * (+) underline: "b ` + getGTMNowString() + `" 2&
         `);
       }
-      insufficientDiskSpace(logPath, available);
+      logInsufficientDiskSpace(logPath, available);
     }
   }
 
