@@ -14,7 +14,7 @@ function getBinBuf(params) {
   }
   const { length, } = params;
   if (length <= 1) {
-    throw new Error('[Error] The length of the params parameter should be greater than or equal to two');
+    throw new Error('[Error] The length of the parameters should be greater than or equal to two');
   }
   const pbytes = [];
   params.forEach((param) => {
@@ -42,6 +42,7 @@ function formatTables(tables) {
 class DistribTable extends Table {
   constructor(tb, options, port, allTables) {
     super(tb, options);
+    this.global = null;
     this.dealParams(port, allTables);
   }
 
@@ -97,6 +98,10 @@ class DistribTable extends Table {
       distribTable.closeConnections();
       delete distribTable.connections;
     });
+  }
+
+  setGlobal(global) {
+    this.global = global;
   }
 
   dealParams(port, allTables) {
@@ -401,7 +406,7 @@ class DistribTable extends Table {
     switch (code) {
       case 0: {
         if (params.length !== 2) {
-          throw new Error('[Error] The parameter length should be equal to two.');
+          throw new Error('[Error] The parameters length should be equal to two.');
         }
         const [id, total] = params;
         this.deleteExchange(Number(id), Number(total), true);
@@ -421,7 +426,7 @@ class DistribTable extends Table {
       }
       case 2: {
         if (params.length !== 2) {
-          throw new Error('[Error] The parameter length should be equal to two.');
+          throw new Error('[Error] The parameters length should be equal to two.');
         }
         const [id1, id2] = params;
         this.deleteDataById(Number(id1));
@@ -442,7 +447,7 @@ class DistribTable extends Table {
       }
       case 4: {
         if (params.length !== 2) {
-          throw new Error('[Error] The parameter length should be equal to two.');
+          throw new Error('[Error] The parameters length should be equal to two.');
         }
         const [phrase, callback] = params;
         this.addSystemNotice(phrase, callback);

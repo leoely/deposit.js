@@ -654,7 +654,10 @@ class Table {
       } = this;
       const callback = notice.gain('mem>chk');
       if (typeof callback === 'function') {
-        callback();
+        const {
+          global,
+        } = this;
+        callback(global);
       }
       const {
         options: {
@@ -697,7 +700,10 @@ class Table {
       } = this;
       const callback = notice.gain('disk>rem');
       if (typeof callback === 'function') {
-        callback();
+        const {
+          global,
+        } = this;
+        callback(global);
       }
       const {
         options: {
