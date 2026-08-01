@@ -340,7 +340,7 @@ class DistribTable extends Table {
       this.checkMemory();
       this.outputDistribOperate('setUp server');
     } catch (error) {
-      this.outputDistribOperateError('setUp server');
+      this.outputDistribOperateError('setUp server', error);
     }
   }
 
@@ -447,9 +447,10 @@ class DistribTable extends Table {
         const [phrase, callback] = params;
         this.addSystemNotice(phrase, callback);
         connection.write('ack');
+        break;
       }
       default:
-        throw new Error('[Error] The code value should be in the range [0, 5]');
+        throw new Error('[Error] The code value should be in the range [0, 4]');
     }
   }
 
@@ -524,7 +525,7 @@ class DistribTable extends Table {
       await Promise.all(ackPromises);
       this.outputDistribOperate('deleteExchange distrib');
     } catch (error) {
-      this.outputDistribOperateError('deleteExchange distrib');
+      this.outputDistribOperateError('deleteExchange distrib', error);
     }
   }
 
@@ -602,9 +603,8 @@ class DistribTable extends Table {
       });
       await Promise.all(ackPromises);
       this.outputDistribOperate('addSystemNotice distrib');
-      return mapping;
     } catch (error) {
-      this.outputDistribOperateError('addSystemNotice distrib');
+      this.outputDistribOperateError('addSystemNotice distrib', error);
     }
   }
 }

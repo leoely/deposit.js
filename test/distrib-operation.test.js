@@ -115,5 +115,13 @@ describe('[Class] Distributed operation test cases;', () => {
     const users23 = await global_users_tb3.select([39, 39]);
     expect(JSON.stringify(users23)).toMatch('[{\"id\":39,\"name\":\"zach\",\"age\":34,\"gender\":1,\"city\":\"washington\",\"country\":\"america\"}]');
     await DistribTable.release([global_users_tb1, global_users_tb2, global_users_tb3]);
+    global_users_tb1.setTemporaryMemorySwitch(true);
+    global_users_tb2.setTemporaryMemorySwitch(true);
+    global_users_tb3.setTemporaryMemorySwitch(true);
+    let notify = false;
+    global_users_tb3.addSystemNotice('mem>chk', () => {
+      notify = true;
+    });
+    expect(notify).toBe(false);
   });
 });
