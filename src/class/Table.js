@@ -687,6 +687,45 @@ class Table {
     return ans;
   }
 
+  checkDisk() {
+    const { options, } = this;
+    if (options.minimumStorageCapacity === undefined) {
+      options.minimumStorageCapacity = 0;
+    }
+    const {
+      options: {
+        minimumStorageCapacity,
+      },
+    } = this;
+    const available = this.available();
+    if (available > minimumStorageCapacity) {
+      const {
+        notice,
+      } = this;
+      const callback = notice.gain('mem>chk');
+      if (typeof callback === 'function') {
+        callback();
+      }
+      const {
+        options: {
+          debug,
+          logPath,
+        },
+        constructor: {
+          name,
+        },
+      } = this;
+      if (debug === true) {
+        fulmination.scan(`
+          (+) red; bold: !! (+) bold: * Class "[ (+) black; bgRed: ` + name + `(+) bold: "] Situation "[ (+) black; bgWhite: Disk (+) bold: "] Insufficient space. 2&
+          (+) bold: "[ (+) black; bgRed: DISK_SPACE (+) bold: "] !! * (+) underline: Only the remaining * (+) bold: "[ (+) black; bgWhite: ${available} (+) bold: "] &
+          (+) bold: "[ (+) black; bgRed: Date (+) bold: "] @@ * (+) underline: "b ` + getGTMNowString() + `" 2&
+        `);
+      }
+      insufficientDiskSpace(logPath, available);
+    }
+  }
+
   setTemporaryMemorySwitch(temporaryMemorySwitch) {
     if (typeof temporaryMemorySwitch !== 'boolean') {
       throw new Error('[Error] Parameter temporaryMemorySwitch should be of boolean type.');
