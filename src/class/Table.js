@@ -1,4 +1,5 @@
 import os from 'os';
+import Fulmination from 'fulmination';
 import disk from 'diskusage';
 import { NamespaceRouter, } from 'advising.js';
 import {
@@ -242,6 +243,7 @@ class Table {
     checkLogPath(logPath);
     if (debug === true) {
       this.fulmination = new Fulmination();
+      const { fulmination, } = this;
       fulmination.scan(`
       [+] bold:
       |
@@ -664,6 +666,9 @@ class Table {
         },
       } = this;
       if (debug === true) {
+        const {
+          fulmination,
+        } = this;
         fulmination.scan(`
           (+) red; bold: !! (+) bold: * Class "[ (+) black; bgRed: ` + name + `(+) bold: "] Situation "[ (+) black; bgWhite: Memory  (+) bold: "] Usage exhausted. 2&
           (+) bold: "[ (+) black; bgRed: FREEMEM (+) bold: "] !! * (+) underline: Only the remaining * (+) bold: "[ (+) black; bgWhite: ${freemem} (+) bold: "] &
@@ -704,6 +709,9 @@ class Table {
         },
       } = this;
       if (debug === true) {
+        const {
+          fulmination,
+        } = this;
         fulmination.scan(`
           (+) red; bold: !! (+) bold: * Class "[ (+) black; bgRed: ` + name + `(+) bold: "] Situation "[ (+) black; bgWhite: Disk (+) bold: "] Insufficient space. 2&
           (+) bold: "[ (+) black; bgRed: DISK_SPACE (+) bold: "] !! * (+) underline: Only the remaining * (+) bold: "[ (+) black; bgWhite: ${available} (+) bold: "] &
