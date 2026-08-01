@@ -1,3 +1,4 @@
+import timersPromises from 'timers/promises';
 import { describe, expect, test, } from '@jest/globals';
 import Users from '~/class/table/MysqlUsers';
 import global from '~/obj/testGlobal';
@@ -8,11 +9,7 @@ beforeAll(() => {
 
 describe('[Class] Select high index test cases;', () => {
   test('Test multiple high index situations;', async () => {
-    await new Promise((resolve, reject) => {
-      setTimeout(() => {
-        resolve();
-      }, 900);
-    });
+    await timersPromises.setTimeout(900);
 
     const global_users_tb = global.users.tb;
 

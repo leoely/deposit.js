@@ -1,3 +1,4 @@
+import timersPromises from 'timers/promises';
 import { describe, expect, test, } from '@jest/globals';
 import { getOwnIpAddresses, } from 'manner.js/server';
 import DistribTable from '~/class/DistribTable';
@@ -24,11 +25,7 @@ beforeAll(() => {
 
 describe('[Class] Distributed operation test cases;', () => {
   test('Test distributed related operations.', async () => {
-    await new Promise((resolve, reject) => {
-      setTimeout(() => {
-        resolve();
-      }, 1400);
-    });
+    await timersPromises.setTimeout(1400);
     const global_users_tb1 = global.users.tb1;
     const global_users_tb2 = global.users.tb2;
     await DistribTable.combine([global_users_tb1, global_users_tb2]);
