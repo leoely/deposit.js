@@ -284,22 +284,6 @@ class Table {
     this[temporaryUpdateDiskAvailableKey](availableDelta);
   }
 
-  async deleteNote(type, connection, tb, id, instance) {
-    const availableDelta = await this.acquireAvailableDelta(async () => {
-      await deleteRecord(type, connection, tb, id, instance);
-    });
-    this[temporaryUpdateDiskAvailableKey](availableDelta);
-  }
-
-  async selectNote(type, connection, tb, section, filters, instance) {
-    let ans;
-    const availableDelta = await this.acquireAvailableDelta(async () => {
-      ans = await selectRecord(type, connection, tb, section, filters, instance);
-    });
-    this[temporaryUpdateDiskAvailableKey](availableDelta);
-    return ans;
-  }
-
   async updateNote(type, connection, tb, obj, instance) {
     const availableDelta = await this.acquireAvailableDelta(async () => {
       await updateRecord(type, connection, tb, obj, instance);
@@ -985,9 +969,9 @@ class Table {
       const s = sections[i];
       let records;
       if (this.hasSqls()) {
-        records = await this.selectNote(type, connection, tb, s, [filter], this);
+        records = await selectRecord(type, connection, tb, s, [filter], this);
       } else {
-        records = await this.selectNote(type, connection, tb, s, [filter]);
+        records = await selectRecord(type, connection, tb, s, [filter]);
       }
       const [l, r] = s;
       if (records.length > 0) {
@@ -1174,9 +1158,9 @@ class Table {
         const { tb, } = this;
         if (mem !== true) {
           if (this.hasSqls()) {
-            await this.deleteNote(type, connection, tb, id, this);
+            await deleteRecord(type, connection, tb, id, this);
           } else {
-            await this.deleteNote(type, connection, tb, id);
+            await deleteRecord(type, connection, tb, id);
           }
         }
         this.deleteDataById(id);
@@ -1187,15 +1171,15 @@ class Table {
           const { tb, } = this;
           let records;
           if (this.hasSqls()) {
-            records = await this.selectNote(type, connection, tb, [total - 1, total - 1], undefined, this);
+            records = await selectRecord(type, connection, tb, [total - 1, total - 1], undefined, this);
           } else {
-            records = await this.selectNote(type, connection, tb, [total - 1, total - 1]);
+            records = await selectRecord(type, connection, tb, [total - 1, total - 1]);
           }
           const record = records[0];
           if (this.hasSqls()) {
-            await this.deleteNote(type, connection, tb, total - 1, this);
+            await deleteRecord(type, connection, tb, total - 1, this);
           } else {
-            await this.deleteNote(type, connection, tb, total - 1);
+            await deleteRecord(type, connection, tb, total - 1);
           }
           record.id = id;
           if (this.hasSqls()) {
@@ -1347,9 +1331,9 @@ class Table {
         tb,
       } = this;
       if (this.hasSqls()) {
-        await this.deleteNote(type, connection, tb, id, this);
+        await deleteRecord(type, connection, tb, id, this);
       } else {
-        await this.deleteNote(type, connection, tb, id);
+        await deleteRecord(type, connection, tb, id);
       }
       this.deleteDataById(id);
       this.outOfOrder = true;
@@ -1398,9 +1382,9 @@ class Table {
         datas, tb,
       } = this;
       if (this.hasSqls()) {
-        record = await this.selectNote(type, connection, tb, [id, id], undefined, this);
+        record = await selectRecord(type, connection, tb, [id, id], undefined, this);
       } else {
-        record = await this.selectNote(type, connection, tb, [id, id]);
+        record = await selectRecord(type, connection, tb, [id, id]);
       }
     } else {
       record = await this.select([id, id], undefined, undefined, false);
@@ -1637,9 +1621,9 @@ class Table {
           } = this;
           const index = section[0];
           if (this.hasSqls()) {
-            records = await this.selectNote(type, connection, tb, [index, index], undefined, this);
+            records = await selectRecord(type, connection, tb, [index, index], undefined, this);
           } else {
-            records = await this.selectNote(type, connection, tb, [index, index]);
+            records = await selectRecord(type, connection, tb, [index, index]);
           }
           const record = records[0];
           this.columns = [];
