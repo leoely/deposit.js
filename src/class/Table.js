@@ -185,7 +185,7 @@ function assignContent(record1, record2) {
   });
 }
 
-async function diskUsage() {
+async function getDiskUsage() {
   const homedir = os.homedir();
   const diskUsage = await disk.check(homedir);
   return diskUsage;
@@ -282,6 +282,7 @@ class Table {
       await insertRecord(type, connection, tb, objs, instance);
     });
     this[temporaryUpdateDiskAvailableKey](availableDelta);
+    this.checkDisk();
   }
 
   async updateNote(type, connection, tb, obj, instance) {
@@ -289,6 +290,7 @@ class Table {
       await updateRecord(type, connection, tb, obj, instance);
     });
     this[temporaryUpdateDiskAvailableKey](availableDelta);
+    this.checkDisk();
   }
 
   async acquireAvailableDelta(callback) {
@@ -339,12 +341,12 @@ class Table {
       if (temporaryDiskSwitch === true) {
         return this[temporaryDiskAvailableKey];
       } else {
-        const diskUsage = await diskUsage();
+        const diskUsage = await getDiskUsage();
         return diskUsage.available;
       }
     } else {
       if (flag === true) {
-        const diskUsage = await diskUsage();
+        const diskUsage = await getDiskUsage();
         return diskUsage.available;
       } else {
         return this[temporaryDiskAvailableKey];
@@ -379,14 +381,10 @@ class Table {
       throw new Error('[Error] The parameter callback should be a function type.');
     }
     switch (phrase) {
-      case 'disk>rem': {
-        const { notice, } = this;
-        notice.attach('disk>rem', callback);
-        break;
-      }
+      case 'disk>rem':
       case 'mem>chk': {
         const { notice, } = this;
-        notice.attach('mem>chk', callback);
+        notice.attach(phrase, callback);
         break;
       }
       default:
