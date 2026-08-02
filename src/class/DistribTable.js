@@ -2,6 +2,7 @@ import net from 'net';
 import {
   getOwnIpAddresses,
   ByteArray,
+  getAddress,
   getGTMNowString,
 } from 'manner.js/server';
 import Table from './Table';
@@ -44,6 +45,22 @@ class DistribTable extends Table {
     super(tb, options);
     this.global = null;
     this.dealParams(port, allTables);
+  }
+
+  setGlobal() {
+    const {
+      constructor: {
+        name,
+      },
+    } = this;
+    switch (name) {
+      case 'DistribTable':
+        this.global = global;
+        break;
+      default:
+        throw new Error('[Error] Only distributed instances can set global object.');
+    }
+    this.checkMemory();
   }
 
   static async combine(distribTables) {
@@ -119,8 +136,8 @@ class DistribTable extends Table {
     const locations = [];
     ipAddresses.forEach((ipAddress) => {
       const { ipv4, ipv6, } = ipAddress;
-      locations.push(ipv4 + ':' + port);
-      locations.push('[' + ipv6 + ']:' + port);
+      locations.push(getAddress(ipv4, port));
+      locations.push(getAddress(ipv6, port));
     });
     const hash = {};
     const tables = allTables.filter((table) => {
@@ -134,22 +151,11 @@ class DistribTable extends Table {
       for (let i = 0; i< locations.length ; i += 1) {
         const location = locations[i];
         const [ip] = table;
-        if (net.isIPv4(ip)) {
-          if (table.join(':') === location) {
-            const [ip] = table;
-            this.ip = ip;
-            flag = false;
-            break;
-          }
-        } else if (net.isIPv6(ip)) {
-          const [ip, port] = table;
-          const formatTable = ['[' + ip + ']', port];
-          if (formatTable.join(':') === location) {
-            const [ip] = table;
-            this.ip = ip;
-            flag = false;
-            break;
-          }
+        if (getAddress(ip, port)) {
+          const [ip] = table;
+          this.ip = ip;
+          flag = false;
+          break;
         }
       }
       return flag;

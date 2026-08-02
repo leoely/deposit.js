@@ -1,6 +1,6 @@
 {
   "name": "deposit.js",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "The javascript database cache libray.",
   "main": "./dist/index.js",
   "repository": "git@github.com:leoely/deposit.js.git",
@@ -28,7 +28,7 @@
     "diskusage": "^1.2.0",
     "fulmination": "^1.1.31",
     "gulp": "^5.0.1",
-    "manner.js": "^1.2.3",
+    "manner.js": "^1.2.7",
     "mysql2": "^3.22.5",
     "pg": "^8.22.0"
   }

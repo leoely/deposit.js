@@ -4465,10 +4465,10 @@ manner.js@^1.1.4:
     gulp "^4.0.2"
     node-fetch "2"
 
-manner.js@^1.2.3:
-  version "1.2.3"
-  resolved "https://registry.yarnpkg.com/manner.js/-/manner.js-1.2.3.tgz#748233f9d0396bbba9999cdfe309def6d2c13085"
-  integrity sha512-SR9sUoV/UKqlpKhyZsnj5FIjslNmfiV6sbs/fgh2jBEwB/k9CyZ/cGpyMRS8N5s6HUg3ppjM0SChvPKVTYOrxA==
+manner.js@^1.2.7:
+  version "1.2.7"
+  resolved "https://registry.yarnpkg.com/manner.js/-/manner.js-1.2.7.tgz#e21af8d04ed86c5ff7981c45e364ea32f7aadbe1"
+  integrity sha512-1ua6gWt4AvgmMGT6debx2Dr4nrpysU/5U6XqEYuq98DidcMDmh8XrXgeD584/l5ab4inR2a2s6hn1UvYiMsX/w==
   dependencies:
     babel-plugin-root-import "^6.6.0"
     gulp "^4.0.2"

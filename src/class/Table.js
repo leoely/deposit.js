@@ -393,6 +393,7 @@ class Table {
       case 'mem>chk': {
         const { notice, } = this;
         notice.attach(phrase, callback);
+        this.checkMemory();
         break;
       }
       default:
@@ -1382,6 +1383,7 @@ class Table {
       this.deleteDataById(obj.id);
       this.outOfOrder = true;
       this.full = false;
+      this.checkMemory();
       this.outputOperate('update');
     } catch (error) {
       this.outputOperateError('update', error);
@@ -1430,6 +1432,7 @@ class Table {
     assignContent(highRecord, lowRecordCopy);
     await this.update(lowRecord);
     await this.update(highRecord);
+    this.checkMemory();
     this.outputOperate('exchangeContent');
   }
 
