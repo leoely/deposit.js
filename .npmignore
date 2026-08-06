@@ -1,6 +1,7 @@
 node_modules/
 docker-entrypoint-initdb.d/
 src/
+coverage/
 test/
 README.md
 LICENSE
