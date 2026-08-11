@@ -105,6 +105,9 @@ class DistribTable extends Table {
       distribTableindex = index;
     });
     await DistribTable.combine(newDistribTables);
+    originDistribTables.forEach((originDistribTable) => {
+      originDistribTable.setUpSockets(false);
+    });
   }
 
   static async release(distribTables) {
