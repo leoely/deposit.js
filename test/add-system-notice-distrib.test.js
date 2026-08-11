@@ -21,7 +21,7 @@ beforeAll(() => {
 
 describe('[Class] Distributed addSystemNotice test cases;', () => {
   test('Test distributed addSystemNotice operations.', async () => {
-    await timersPromises.setTimeout(1750);
+    await timersPromises.setTimeout(1800);
     const global_users_tb4 = global.users.tb4;
     const global_users_tb5 = global.users.tb5;
     await DistribTable.combine([global_users_tb4, global_users_tb5]);

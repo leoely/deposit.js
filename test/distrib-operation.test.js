@@ -106,7 +106,7 @@ describe('[Class] Distributed operation test cases;', () => {
     ];
     global.users.tb3 = new DistribUsers(8002, tables);
     const global_users_tb3 = global.users.tb3;
-    await DistribTable.join([global_users_tb3], [global_users_tb1, global_users_tb2]);
+    await DistribTable.join([global_users_tb3], [global_users_tb1, global_users_tb2], tables);
     await global_users_tb3.updateDistrib({ id: 39, name: 'zach', age: 34, gender: 1, city: 'washington', country: 'america', });
     const users21 = await global_users_tb1.select([39, 39]);
     expect(JSON.stringify(users21)).toMatch('[{\"id\":39,\"name\":\"zach\",\"age\":34,\"gender\":1,\"city\":\"washington\",\"country\":\"america\"}]');

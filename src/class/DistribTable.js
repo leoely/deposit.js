@@ -1,3 +1,4 @@
+import EventEmitter from 'events';
 import net from 'net';
 import {
   getOwnIpAddresses,
@@ -36,6 +37,17 @@ function getBinBuf(params) {
   return buf;
 }
 
+function addBufferFlag(flag, buffer) {
+  if (!Number.isInteger(flag)) {
+    throw new Error('[Error] The parameter flag should be an integer type');
+  }
+  if (!Buffer.isBuffer(buffer)) {
+    throw new Error('[Error] The parameter buffer should be of type buffer.');
+  }
+  const fbytes = Buffer.from([flag]);
+  return Buffer.concat([fbytes, buffer]);
+}
+
 function formatTables(tables) {
   return '[' + tables.join(', ') + ']';
 }
@@ -45,6 +57,11 @@ class DistribTable extends Table {
     super(tb, options);
     this.global = null;
     this.dealParams(port, allTables);
+    this.eventEmitter = new EventEmitter();
+    this.dealReceiveBuffer = this.dealReceiveBuffer.bind(this);
+    this.dealReceiveAndSendBuffer = this.dealReceiveAndSendBuffer.bind(this);
+    this.count = 0;
+    this.checkMemory();
   }
 
   setGlobal() {
@@ -74,28 +91,20 @@ class DistribTable extends Table {
       return distribTable.setUpClients();
     });
     await Promise.all(serverPromises.concat(clientsPromises));
+    distribTables.map((distribTable) => {
+      distribTable.setUpSockets(true);
+    });
   }
 
-  static async join(newDistribTables, originDistribTables) {
-    if (!Array.isArray(newDistribTables)) {
-      throw new Error('[Error] The new distributed tables should beo fo array type..');
-    }
-    if (!Array.isArray(originDistribTables)) {
-      throw new Error('[Error] The origin distributed tables should be of array type.');
-    }
-    const serverPromises = newDistribTables.map((distribTable) => {
-      return distribTable.setUpServer();
+  static async join(newDistribTables, originDistribTables, allTables) {
+    originDistribTables.forEach((originDistribTable) => {
+      originDistribTable.setAllTables(allTables);
     });
-    const clientsPromises = newDistribTables.map((distribTable) => {
-      return distribTable.setUpClients();
+    distribTables = originDistribTables.concat(newDistribTables);
+    distribTables.forEach((distribTable, index) => {
+      distribTableindex = index;
     });
-    const addPromises = originDistribTables.map((originDistribTable) => {
-      return newDistribTables.map((newDistribTable) => {
-        const { ip, port, } = newDistribTable;
-        originDistribTable.addTable(ip, port);
-      });
-    }).flat();
-    await Promise.all(serverPromises.concat(clientsPromises).concat(addPromises));
+    await DistribTable.combine(newDistribTables);
   }
 
   static async release(distribTables) {
@@ -121,6 +130,49 @@ class DistribTable extends Table {
     this.global = global;
   }
 
+  setAllTables(allTables) {
+    if (Array.isArray(allTables) !== true) {
+      throw new Error('[Error] The parameter all tables should be array type.');
+    }
+    const { port, } = this;
+    const ipAddresses = getOwnIpAddresses();
+    const locations = [];
+    ipAddresses.forEach((ipAddress) => {
+      const { ipv4, ipv6, } = ipAddress;
+      locations.push(getAddress(ipv4, port));
+      locations.push(getAddress(ipv6, port));
+    });
+    const hash = {};
+    allTables = allTables.map((table, index) => {
+      const [ip, port] = table;
+      return [ip, port, index];
+    });
+    const tables = allTables.filter((table, index) => {
+      const [_, port] = table;
+      if (hash[port] === undefined) {
+        hash[port] = true;
+      } else {
+        throw new Error('[Error] A port can only be bound to one table');
+      }
+      let flag = true;
+      for (let i = 0; i< locations.length ; i += 1) {
+        const location = locations[i];
+        const [ip] = table;
+        if (getAddress(ip, port) === location) {
+          const [ip] = table;
+          this.index = index;
+          this.ip = ip;
+          flag = false;
+          break;
+        }
+      }
+      return flag;
+    });
+    const { ip, } = this;
+    this.address = getAddress(ip, this.port);
+    this.tables = tables;
+  }
+
   dealParams(port, allTables) {
     if (!Number.isInteger(port)) {
       throw new Error('[Error] Parameter id needs to be an integer.');
@@ -140,7 +192,11 @@ class DistribTable extends Table {
       locations.push(getAddress(ipv6, port));
     });
     const hash = {};
-    const tables = allTables.filter((table) => {
+    allTables = allTables.map((table, index) => {
+      const [ip, port] = table;
+      return [ip, port, index];
+    });
+    const tables = allTables.filter((table, index) => {
       const [_, port] = table;
       if (hash[port] === undefined) {
         hash[port] = true;
@@ -151,8 +207,9 @@ class DistribTable extends Table {
       for (let i = 0; i< locations.length ; i += 1) {
         const location = locations[i];
         const [ip] = table;
-        if (getAddress(ip, port)) {
+        if (getAddress(ip, port) === location) {
           const [ip] = table;
+          this.index = index;
           this.ip = ip;
           flag = false;
           break;
@@ -160,7 +217,9 @@ class DistribTable extends Table {
       }
       return flag;
     });
-    this.tables = allTables;
+    const { ip, } = this;
+    this.address = getAddress(ip, this.port);
+    this.tables = tables;
   }
 
   getTables() {
@@ -240,11 +299,12 @@ class DistribTable extends Table {
     if (typeof callback !== 'function') {
       throw new Error('[Error] Parameter callback should be a funciton type.');
     }
-    return this.getClients().map((client) => {
-      callback(client);
+    const { eventEmitter, } = this;
+    return this.getSockets().map((socket) => {
+      callback(socket);
       return new Promise((resolve, reject) => {
-        client.on('data', (buf) => {
-          const data = buf.toString();
+        eventEmitter.on('data:receive', (buffer) => {
+          const data = buffer.toString();
           switch (data) {
             case 'ack':
               resolve();
@@ -285,9 +345,6 @@ class DistribTable extends Table {
       if (!Array.isArray(connections)) {
         throw new Error('[Error] The connections is not an array type or the combine is not complete.');
       }
-      if (connections.length === 0) {
-        throw new Error('[Error] The length of the connections is zero.Perhaps the combine was not completed;');
-      }
       connections.forEach((connection) => {
         connection.destroySoon();
       });
@@ -321,6 +378,32 @@ class DistribTable extends Table {
     return clients;
   }
 
+  getSockets() {
+    this.checkCombine();
+    return this.sockets;
+  }
+
+  dealReceiveAndSendBuffer(buffer, socket) {
+    const flag = buffer[0];
+    const {
+      length,
+    } = buffer;
+    buffer = buffer.subarray(1, length);
+    switch (flag) {
+      case 0: {
+        const {
+          eventEmitter,
+        } = this;
+        eventEmitter.emit('data:receive', buffer);
+        break;
+      }
+      case 1: {
+        this.dealReceiveBuffer(buffer, socket);
+        break;
+      }
+    }
+  }
+
   async setUpServer() {
     try {
       const {
@@ -328,26 +411,51 @@ class DistribTable extends Table {
           length,
         },
       } = this;
-      let count = 0;
       this.connections = [];
-      this.server = await new Promise((resolve, reject) => {
-        const server = net.createServer((connection) => {
-          connection.on('data', (buf) => {
-            this.dealConnectionBuf(buf, connection);
-          });
-          count += 1;
+      const { index, } = this;
+      if (length - index === 0) {
+        this.server = net.createServer((connection) => {
+          this.count += 1;
           this.connections.push(connection);
-          if (count === length) {
-            resolve(server);
-          }
+          connection.on('close', () => {
+            this.removeConnection(connection);
+          });
+          connection.on('data', (buffer) => {
+            this.dealReceiveAndSendBuffer(buffer, connection);
+          });
+          this.setUpSockets(false);
         });
-        const { port, } = this;
+        const { server, } = this;
         server.on('error', (error) => {
           throw error;
         });
+        const { port, } = this;
         server.listen(port);
-      });
-      const { server, } = this;
+      } else {
+        this.server = await new Promise((resolve, reject) => {
+          const server = net.createServer((connection) => {
+            this.count += 1;
+            this.connections.push(connection);
+            connection.on('close', () => {
+              this.removeConnection(connection);
+            });
+            const { count, } = this;
+            if (count === length - index) {
+              resolve(server);
+            } else if (count > length - index) {
+              connection.on('data', (buffer) => {
+                this.dealReceiveAndSendBuffer(buffer, connection);
+              });
+              this.setUpSockets(false);
+            }
+          });
+          const { port, } = this;
+          server.on('error', (error) => {
+            throw error;
+          });
+          server.listen(port);
+        });
+      }
       this.checkMemory();
       this.outputDistribOperate('setUp server');
     } catch (error) {
@@ -357,23 +465,27 @@ class DistribTable extends Table {
 
   async setUpClients() {
     try {
-      const { tables, } = this;
-      const clientPromises = tables.map((table) => {
-        const [ip, port] = table;
-        return new Promise((resolve, reject) => {
-          const client = net.createConnection(port, ip, () => {
-            client.ip = ip;
-            client.port = port;
-            resolve(client);
+      const { tables, index, } = this;
+      const clientPromises = [];
+      tables.map((table) => {
+        const [_1, _2, i] = table;
+        if (index > i && i >= 0) {
+          const [ip, port] = table;
+          const clientPromise = new Promise((resolve, reject) => {
+            const client = net.createConnection(port, ip, () => {
+              client.ip = ip;
+              client.port = port;
+              resolve(client);
+            });
+            client.on('close', () => {
+              const { ip, port, } = client;
+              this.removeClient(client);
+            });
           });
-          client.on('close', () => {
-            const { ip, port, } = client;
-            this.removeTable(ip, port);
-          });
-        });
+          clientPromises.push(clientPromise);
+        }
       });
       this.clients = await Promise.all(clientPromises);
-      const { client, } = this;
       this.checkMemory();
       this.outputDistribOperate('setUp client');
     } catch (error) {
@@ -381,7 +493,29 @@ class DistribTable extends Table {
     }
   }
 
-  dealConnectionBuf(buf, connection) {
+  setUpSockets(bind) {
+    if (typeof bind !== 'boolean') {
+      throw new Error('[Error] The parameter bind should be boolean type.');
+    }
+    try {
+      const { clients, connections, } = this;
+      this.sockets = clients.concat(connections);
+      const { sockets: socketList, } = this;
+      if (bind === true) {
+        socketList.forEach((socket) => {
+          socket.on('data', (buffer) => {
+            this.dealReceiveAndSendBuffer(buffer, socket);
+          });
+        })
+      }
+      this.checkMemory();
+      this.outputDistribOperate('setUp socket');
+    } catch (error) {
+      this.outputDistribOperateError('setUp socket', error);
+    }
+  }
+
+  dealReceiveBuffer(buf, socket) {
     const segments = [];
     let s = 0;
     for (let i = 0; i < buf.length; i += 1) {
@@ -416,7 +550,7 @@ class DistribTable extends Table {
         }
         const [id, total] = params;
         this.deleteExchange(Number(id), Number(total), true);
-        connection.write('ack');
+        socket.write(addBufferFlag(0, Buffer.from('ack')));
         break;
       }
       case 1: {
@@ -427,7 +561,7 @@ class DistribTable extends Table {
         this.deleteDataById(Number(id));
         this.outOfOrder = true;
         this.full = false;
-        connection.write('ack');
+        socket.write(addBufferFlag(0, Buffer.from('ack')));
         break;
       }
       case 2: {
@@ -439,7 +573,7 @@ class DistribTable extends Table {
         this.deleteDataById(Number(id2));
         this.outOfOrder = true;
         this.full = false;
-        connection.write('ack');
+        socket.write(addBufferFlag(0, Buffer.from('ack')));
         break;
       }
       case 3: {
@@ -448,7 +582,7 @@ class DistribTable extends Table {
         }
         const [highId] = params;
         const mapping = this.exchangeHighIndex(Number(highId), true);
-        connection.write('ack');
+        socket.write(addBufferFlag(0, Buffer.from('ack')));
         return mapping;
       }
       case 4: {
@@ -457,7 +591,7 @@ class DistribTable extends Table {
         }
         const [phrase, callback] = params;
         this.addSystemNotice(phrase, callback);
-        connection.write('ack');
+        socket.write(addBufferFlag(0, Buffer.from('ack')));
         break;
       }
       default:
@@ -465,47 +599,45 @@ class DistribTable extends Table {
     }
   }
 
-  removeTable(ip, port) {
+  removeClient(client) {
     try {
-      const { tables, } = this;
-      for (let i = 0; i < tables.length; i += 1) {
-        const [tableIp, tablePort] = tables[i];
-        if (tableIp === ip && tablePort === port) {
-          tables.splice(i, 1);
-          const { clients, } = this;
-          if (Array.isArray(clients)) {
+      const { clients, } = this;
+      if (clients !== undefined) {
+        for (let i = 0; i < clients.length; i += 1) {
+          const currentClient = clients[i];
+          if (client === currentClient) {
             clients.splice(i, 1);
-            clients[i].destroySoon();
+            currentClient.destroySoon();
+            this.setUpSockets(false);
+            break;
           }
-          break;
         }
+        this.outputDistribTopology();
+        this.outputDistribOperate('remove client');
       }
-      this.outputDistribOperate('remove table');
     } catch (error) {
-      this.outputDistribOperateError('remove table', error);
+      this.outputDistribOperateError('remove client', error);
     }
   }
 
-  async addTable(ip, port) {
+  removeConnection(connection) {
     try {
-      await new Promise((resolve, reject) => {
-        const client = net.createConnection(port, ip, () => {
-          client.ip = ip;
-          client.port = port;
-          resolve(client);
-        });
-        client.on('close', () => {
-          const { ip, port, } = client;
-          this.removeTable(ip, port);
-        });
-        const { tables, clients, } = this;
-        tables.push([ip, port]);
-        clients.push(client);
-      });
-      this.checkMemory();
-      this.outputDistribOperate('remove table');
+      const { connections, } = this;
+      if (connections !== undefined) {
+        for (let i = 0; i < clients.length; i += 1) {
+          const currentConneciton = connections[i];
+          if (connection === connections[i]) {
+            connections.splice(i, 1);
+            currentConnection.destroySoon();
+            this.setUpSockets(false);
+            break;
+          }
+        }
+        this.outputDistribTopology();
+        this.outputDistribOperate('remove connection');
+      }
     } catch (error) {
-      this.outputDistribOperateError('remove table', error);
+      this.outputDistribOperateError('remove connection', error);
     }
   }
 
@@ -530,8 +662,8 @@ class DistribTable extends Table {
     try {
       this.checkCombine();
       await this.deleteExchange(id, total);
-      const ackPromises = this.getAckPromises((client) => {
-        client.write(getBinBuf([0, id, total]));
+      const ackPromises = this.getAckPromises((socket) => {
+        socket.write(addBufferFlag(1, getBinBuf([0, id, total])));
       });
       await Promise.all(ackPromises);
       this.outputDistribOperate('deleteExchange distrib');
@@ -552,8 +684,8 @@ class DistribTable extends Table {
     try {
       this.checkCombine();
       await this.delete(id);
-      const ackPromises = this.getAckPromises((client) => {
-        client.write(getBinBuf([1, id]));
+      const ackPromises = this.getAckPromises((socket) => {
+        socket.write(addBufferFlag(1, getBinBuf([1, id])));
       });
       await Promise.all(ackPromises);
       this.outputDistribOperate('delete distrib');
@@ -566,8 +698,8 @@ class DistribTable extends Table {
     try {
       this.checkCombine();
       await this.update(obj);
-      const ackPromises = this.getAckPromises((client) => {
-        client.write(getBinBuf([1, obj.id]));
+      const ackPromises = this.getAckPromises((socket) => {
+        socket.write(addBufferFlag(1, getBinBuf([1, obj.id])));
       });
       await Promise.all(ackPromises);
       this.outputDistribOperate('update distrib');
@@ -580,8 +712,8 @@ class DistribTable extends Table {
     try {
       this.checkCombine();
       await this.exchangeContent(id1, id2);
-      const ackPromises = this.getAckPromises((client) => {
-        client.write(getBinBuf([2, id1, id2]));
+      const ackPromises = this.getAckPromises((socket) => {
+        socket.write(addBufferFlag(1, getBinBuf([2, id1, id2])));
       });
       await Promise.all(ackPromises);
       this.outputDistribOperate('exchangeContent distrib');
@@ -594,8 +726,8 @@ class DistribTable extends Table {
     try {
       this.checkCombine();
       const mapping = await this.exchangeHighIndex(highId);
-      const ackPromises = this.getAckPromises((client) => {
-        client.write(getBinBuf([3, highId]));
+      const ackPromises = this.getAckPromises((socket) => {
+        socket.write(addBufferFlag(1, getBinBuf([3, highId])));
       });
       await Promise.all(ackPromises);
       this.outputDistribOperate('exchangeHighIndex distrib');
@@ -610,7 +742,7 @@ class DistribTable extends Table {
       this.checkCombine();
       this.addSystemNotice(phrase, callback);
       const ackPromises = this.getAckPromises((client) => {
-        client.write(getBinBuf([4, phrase, callback.toString()]));
+        client.write(addBufferFlag(1, getBinBuf([4, phrase, callback.toString()])));
       });
       await Promise.all(ackPromises);
       this.outputDistribOperate('addSystemNotice distrib');
