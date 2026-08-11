@@ -25,7 +25,7 @@ beforeAll(() => {
 
 describe('[Class] Distributed operation test cases;', () => {
   test('Test distributed related operations.', async () => {
-    await timersPromises.setTimeout(1400);
+    await timersPromises.setTimeout(1500);
     const global_users_tb1 = global.users.tb1;
     const global_users_tb2 = global.users.tb2;
     await DistribTable.combine([global_users_tb1, global_users_tb2]);
