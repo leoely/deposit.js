@@ -122,6 +122,13 @@ describe('[Class] Distributed operation test cases;', () => {
     });
     expect(notify).toBe(true);
     expect(JSON.stringify(users23)).toMatch('[{\"id\":39,\"name\":\"zach\",\"age\":34,\"gender\":1,\"city\":\"washington\",\"country\":\"america\"}]');
+    await global_users_tb1.updateDistrib({ id: 39, name: 'ada', age: 25, gender: 1, city: 'zach', country: 'america', });
+    const users31 = await global_users_tb1.select([39, 39]);
+    expect(JSON.stringify(users31)).toMatch('[{\"id\":39,\"name\":\"ada\",\"age\":25,\"gender\":1,\"city\":\"zach\",\"country\":\"america\"}]');
+    const users32 = await global_users_tb2.select([39, 39]);
+    expect(JSON.stringify(users32)).toMatch('[{\"id\":39,\"name\":\"ada\",\"age\":25,\"gender\":1,\"city\":\"zach\",\"country\":\"america\"}]');
+    const users33 = await global_users_tb3.select([39, 39]);
+    expect(JSON.stringify(users33)).toMatch('[{\"id\":39,\"name\":\"ada\",\"age\":25,\"gender\":1,\"city\":\"zach\",\"country\":\"america\"}]');
     await DistribTable.release([global_users_tb1, global_users_tb2, global_users_tb3]);
   });
 });
