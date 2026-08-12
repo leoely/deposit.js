@@ -131,6 +131,7 @@ class DistribTable extends Table {
 
   setGlobal(global) {
     this.global = global;
+    this.checkMemory();
   }
 
   setAllTables(allTables) {
@@ -174,6 +175,7 @@ class DistribTable extends Table {
     const { ip, } = this;
     this.address = getAddress(ip, this.port);
     this.tables = tables;
+    this.checkMemory();
   }
 
   dealParams(port, allTables) {
