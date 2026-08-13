@@ -305,7 +305,7 @@ class DistribTable extends Table {
     return this.getSockets().map((socket) => {
       callback(socket);
       return new Promise((resolve, reject) => {
-        eventEmitter.on('data:receive', (buffer) => {
+        eventEmitter.once('data:receive', (buffer) => {
           const data = buffer.toString();
           switch (data) {
             case 'ack':
