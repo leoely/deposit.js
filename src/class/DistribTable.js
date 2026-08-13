@@ -91,7 +91,7 @@ class DistribTable extends Table {
       return distribTable.setUpClients();
     });
     await Promise.all(serverPromises.concat(clientsPromises));
-    distribTables.map((distribTable) => {
+    distribTables.forEach((distribTable) => {
       distribTable.setUpSockets(true);
     });
   }
@@ -105,9 +105,6 @@ class DistribTable extends Table {
       distribTableindex = index;
     });
     await DistribTable.combine(newDistribTables);
-    originDistribTables.forEach((originDistribTable) => {
-      originDistribTable.setUpSockets(false);
-    });
   }
 
   static async release(distribTables) {
