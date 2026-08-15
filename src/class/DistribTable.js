@@ -26,7 +26,7 @@ function getBinBuf(params) {
         break;
       case 'number':
         if (!Number.isInteger(param)) {
-          throw new Error('[Error] If the param type is a number, ite should be an integer.');
+          throw new Error('[Error] If the param type is a number, it should be an integer.');
         }
         pbytes.push(Array.from(nonZeroByteArray.fromInt(param)));
         break;
