@@ -662,7 +662,7 @@ class DistribTable extends Table {
         break;
       }
       default:
-        throw new Error('[Error] The code value should be in the range [0, 4]');
+        throw new Error('[Error] The code value should be in the range [0, 5].');
     }
   }
 
