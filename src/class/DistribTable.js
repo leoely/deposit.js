@@ -679,7 +679,6 @@ class DistribTable extends Table {
             break;
           }
         }
-        //this.outputDistribTopology();
         this.outputDistribOperate('remove client');
       }
     } catch (error) {
@@ -700,7 +699,6 @@ class DistribTable extends Table {
             break;
           }
         }
-        //this.outputDistribTopology();
         this.outputDistribOperate('remove connection');
       }
     } catch (error) {

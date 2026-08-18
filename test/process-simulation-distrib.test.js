@@ -22,7 +22,7 @@ beforeAll(() => {
 
 describe('[Class] Distributed proceesSimulation test cases;', () => {
   test('Test distributed addSystemNotice operations.', async () => {
-    await timersPromises.setTimeout(2300);
+    await timersPromises.setTimeout(2050);
     const global_users_tb5 = global.users.tb5;
     const global_users_tb6 = global.users.tb6;
     const global_users_tb7 = global.users.tb7;
@@ -31,5 +31,7 @@ describe('[Class] Distributed proceesSimulation test cases;', () => {
     await global_users_tb5.insertDistrib({ id: first, name: 'donna', age: 29, gender: 0, city: 'delaware', country: 'america', });
     const users1 = await global_users_tb5.select([first, first]);
     expect(JSON.stringify(users1)).toMatch('[{\"id\":0,\"name\":\"donna\",\"age\":29,\"gender\":0,\"city\":\"delaware\",\"country\":\"america\"}]');
+    const users2 = await global_users_tb5.select([0, 0]);
+    expect(JSON.stringify(users2)).toMatch('[{\"id\":0,\"name\":\"donna\",\"age\":29,\"gender\":0,\"city\":\"delaware\",\"country\":\"america\"}]');
   });
 });

@@ -1495,10 +1495,10 @@
   resolved "https://registry.yarnpkg.com/@unrs/resolver-binding-win32-x64-msvc/-/resolver-binding-win32-x64-msvc-1.12.2.tgz#72da0da48d72b1e87831b9c0308931d3f4669027"
   integrity sha512-nAB74NfSNKknqQ1RrYj6uz8FcXEomu/MATJZxh/x+BArzN2U3JbOYC0APYzUIGhVY3m5hRxA8VPNdPBoG8txlA==
 
-advising.js@^1.3.8:
-  version "1.3.8"
-  resolved "https://registry.yarnpkg.com/advising.js/-/advising.js-1.3.8.tgz#8aced071c343e02c40abd377ce5ccf5b1b394711"
-  integrity sha512-f3addxS7UtI8vLHypuz38ocrcDgyn4o2nI3GR0MqoNwKpMV+wpIGJU0t62BYi06KLwJqMS/dxdx7XnU/enIWfw==
+advising.js@^1.3.9:
+  version "1.3.10"
+  resolved "https://registry.yarnpkg.com/advising.js/-/advising.js-1.3.10.tgz#3c82f3ec3a4cddfafe94d773e4191083efc4ba6d"
+  integrity sha512-v95kvJhuGq3S9IALPRsNcKHfDcFPRYondUPDZ4T7GlJrabduqnIoXZKS0C76RvoprO4UrWsc30kQt0vn1fErNA==
   dependencies:
     fulmination "^1.1.31"
     gulp "^5.0.1"
@@ -4455,6 +4455,15 @@ makeerror@1.0.12:
   integrity sha512-JmqCvUhmt43madlpFzG4BQzG2Z3m6tvQDNKdClZnO3VbIudJYmxsT0FNJMeiB2+JTSlTQTSbU8QdesVmwJcmLg==
   dependencies:
     tmpl "1.0.5"
+
+manner.js@^1.2.12:
+  version "1.2.12"
+  resolved "https://registry.yarnpkg.com/manner.js/-/manner.js-1.2.12.tgz#01a67a9e8621f94ac6b84facad7983d5e68efec4"
+  integrity sha512-Q6MzhVPsK7lRqxr/9P4p/80JmcjEcqB9DKo4613q6lTqWCgDuFQX32pua4NATp+XXWH9qoAks+lQVTUh60o7GA==
+  dependencies:
+    babel-plugin-root-import "^6.6.0"
+    gulp "^4.0.2"
+    node-fetch "2"
 
 manner.js@^1.2.7:
   version "1.2.7"
