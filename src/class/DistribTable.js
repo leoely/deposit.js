@@ -90,7 +90,7 @@ class DistribTable extends Table {
   async close() {
     try {
       const { ip, port, } = this;
-      await this.removeRouterDistrib([ip, port]);
+      await this.removeTableDistrib([ip, port]);
       this.closeClients();
       delete this.clients;
       this.closeConnections();
@@ -136,8 +136,8 @@ class DistribTable extends Table {
     if (!Array.isArray(distribTables)) {
       throw new Error('[Error] The parameter distribTables should be of array type.');
     }
-    const startPromises = distribTables.map((distribRouter) => {
-      return distribRouter.start();
+    const startPromises = distribTables.map((distribTable) => {
+      return distribTable.start();
     });
     await Promise.all(startPromises);
   }
@@ -656,13 +656,13 @@ class DistribTable extends Table {
         if (params.length !== 2) {
           throw new Error('[Error] The parameters length should be equal to two.');
         }
-        const router = params;
-        this.removeRouter(router);
+        const table = params;
+        this.removeTable(table);
         socket.write(addBufferFlag(0, Buffer.from('ack')));
         break;
       }
       default:
-        throw new Error('[Error] The code value should be in the range [0, 5].');
+        throw new Error('[Error] The code value should be in the range [0, 5]');
     }
   }
 
@@ -706,7 +706,7 @@ class DistribTable extends Table {
     }
   }
 
-  removeRouter([ip, port]) {
+  removeTable([ip, port]) {
     const { tables, } = this;
     this.tables = tables.filter(([rIp, rPort]) => {
       if (rIp === ip && rPort === port) {
@@ -827,18 +827,18 @@ class DistribTable extends Table {
     }
   }
 
-  async removeRouterDistrib(router) {
+  async removeTableDistrib(table) {
     try {
       this.checkCombine();
-      this.removeRouter(router);
-      const [ip, port] = router;
+      this.removeTable(table);
+      const [ip, port] = table;
       const ackPromises = this.getAckPromises((socket) => {
         socket.write(addBufferFlag(1, getBinBuf([5, ip, port])));
       });
       await Promise.all(ackPromises);
-      this.outputDistribOperate('removeRouter distrib');
+      this.outputDistribOperate('removeTable distrib');
     } catch (error) {
-      this.outputDistribOperateError('removeRouter distrib', error);
+      this.outputDistribOperateError('removeTable distrib', error);
     }
   }
 }
