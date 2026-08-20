@@ -1495,14 +1495,14 @@
   resolved "https://registry.yarnpkg.com/@unrs/resolver-binding-win32-x64-msvc/-/resolver-binding-win32-x64-msvc-1.12.2.tgz#72da0da48d72b1e87831b9c0308931d3f4669027"
   integrity sha512-nAB74NfSNKknqQ1RrYj6uz8FcXEomu/MATJZxh/x+BArzN2U3JbOYC0APYzUIGhVY3m5hRxA8VPNdPBoG8txlA==
 
-advising.js@^1.3.9:
-  version "1.3.10"
-  resolved "https://registry.yarnpkg.com/advising.js/-/advising.js-1.3.10.tgz#3c82f3ec3a4cddfafe94d773e4191083efc4ba6d"
-  integrity sha512-v95kvJhuGq3S9IALPRsNcKHfDcFPRYondUPDZ4T7GlJrabduqnIoXZKS0C76RvoprO4UrWsc30kQt0vn1fErNA==
+advising.js@^1.4.2:
+  version "1.4.2"
+  resolved "https://registry.yarnpkg.com/advising.js/-/advising.js-1.4.2.tgz#8f0befeff314063d765e891f67533a1843984a7b"
+  integrity sha512-AN/Ur13lxtpPPD8AdDdNYmF7yMrBwMJcqhxWGGlSr/snmdbKuEb2wMGoWskL2U+tUrzoNeAKUg8xHhDB9k55lw==
   dependencies:
     fulmination "^1.1.31"
     gulp "^5.0.1"
-    manner.js "^1.2.7"
+    manner.js "^1.2.12"
 
 ansi-colors@^1.0.1:
   version "1.1.0"
@@ -4460,15 +4460,6 @@ manner.js@^1.2.12:
   version "1.2.12"
   resolved "https://registry.yarnpkg.com/manner.js/-/manner.js-1.2.12.tgz#01a67a9e8621f94ac6b84facad7983d5e68efec4"
   integrity sha512-Q6MzhVPsK7lRqxr/9P4p/80JmcjEcqB9DKo4613q6lTqWCgDuFQX32pua4NATp+XXWH9qoAks+lQVTUh60o7GA==
-  dependencies:
-    babel-plugin-root-import "^6.6.0"
-    gulp "^4.0.2"
-    node-fetch "2"
-
-manner.js@^1.2.7:
-  version "1.2.7"
-  resolved "https://registry.yarnpkg.com/manner.js/-/manner.js-1.2.7.tgz#e21af8d04ed86c5ff7981c45e364ea32f7aadbe1"
-  integrity sha512-1ua6gWt4AvgmMGT6debx2Dr4nrpysU/5U6XqEYuq98DidcMDmh8XrXgeD584/l5ab4inR2a2s6hn1UvYiMsX/w==
   dependencies:
     babel-plugin-root-import "^6.6.0"
     gulp "^4.0.2"

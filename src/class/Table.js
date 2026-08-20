@@ -1,7 +1,10 @@
 import os from 'os';
 import Fulmination from 'fulmination';
 import disk from 'diskusage';
-import { NamespaceRouter, } from 'advising.js';
+import {
+  IntegerRouter,
+  NamespaceRouter,
+} from 'advising.js';
 import {
   checkLogPath,
   addToLog,
@@ -214,6 +217,7 @@ class Table {
       temporaryDiskSwitch: false,
       safeMemoryCapacity: 10 * 1024 * 1024,
       minimumStorageCapacity: 5 * 1024 ** 3,
+      keepId: false,
     };
     this.dealOptions(options);
     this.options = Object.assign(defaultOptions, options);
@@ -224,9 +228,31 @@ class Table {
     this.outOfOrder = true;
     this.full = true;
     this.sqls = [];
+    const {
+      options: {
+        keepId,
+      },
+    } = this;
+    if (keepId === true) {
+      this.replace = {};
+      const {
+        replace,
+      } = this;
+      replace.positive = new IntegerRouter({
+        logLevel: 0,
+        interception: undefined,
+        debug: false,
+        hideError: true,
+      });
+      replace.reverse = new IntegerRouter({
+        logLevel: 0,
+        interception: undefined,
+        debug: false,
+        hideError: true,
+      });
+    }
     this.notice = new NamespaceRouter({
       logLevel: 0,
-      logInterval: 20,
       interception: undefined,
       debug: false,
       hideError: true,
@@ -574,6 +600,7 @@ class Table {
       temporaryDiskAvailable,
       temporaryDiskSwitch,
       minimumStorageCapacity,
+      keepId,
     } = options;
     if (typeof type !== 'string') {
       throw new Error('[Error] The option type should be a string.');
@@ -625,6 +652,11 @@ class Table {
       }
       if (!(minimumStorageCapacity > 0)) {
         throw new Error('[Error] Option minimumStorageCapacity should be a postive integer.');
+      }
+    }
+    if (keepId !== undefined) {
+      if (typeof keepId !== 'boolean') {
+        throw new Error('[Error] Option keepId should bee a boolean type.');
       }
     }
   }
@@ -1474,6 +1506,42 @@ class Table {
     return mapping;
   }
 
+  syncReplace(highId, lowId) {
+    const {
+      options: {
+        keepId,
+      },
+    } = this;
+    if (keepId === true) {
+      const {
+        replace: {
+          positive,
+          reverse,
+        }
+      } = this;
+      const highSimple = reverse.gain(highId);
+      const lowSimple = reverse.gain(lowId);
+      if (highSimple === undefined) {
+        positive.attach(highId, { id: lowId, count: 0, });
+        reverse.attach(lowId, highId);
+      } else {
+        const id = reverse.gain(highId);
+        const p = positive.gain(id);
+        p.id = lowId;
+        reverse.attach(lowId, id);
+      }
+      if (lowSimple === undefined) {
+        positive.attach(lowId, { id: highId, count: 0, });
+        reverse.attach(highId, lowId);
+      } else {
+        const id = reverse.gain(lowId);
+        const p = positive.gain(id);
+        p.id = highId;
+        reverse.attach(highId, id);
+      }
+    }
+  }
+
   async exchangeNotFull(highId, mem) {
     if (!Number.isInteger(highId)) {
       throw new Error('[Error] The parameter highId should be of integer.');
@@ -1517,6 +1585,7 @@ class Table {
     }
     if (mem !== true) {
       await this.exchangeContent(highId, emptyId);
+      this.syncReplace(highId, emptyId);
     }
     this.checkMemory();
     return [highId, emptyId];
@@ -1552,6 +1621,7 @@ class Table {
     if (mem !== true) {
       await this.exchangeContent(highId, lowId);
       this.full = true;
+      this.syncReplace(highId, lowId);
     }
     return [highId, lowId];
   }
@@ -1565,7 +1635,7 @@ class Table {
     return mappings;
   }
 
-  async select(section, filters, arrange, enter) {
+  async select(section, filters, arrange, enter, check) {
     try {
       if (!Array.isArray(section)) {
         throw new Error('[Error] The parameter section should be an array type.');
@@ -1583,6 +1653,73 @@ class Table {
       if (enter !== undefined) {
         if (typeof enter !== 'boolean') {
           throw new Error('[Error] The parameter enter should be of boolean type.');
+        }
+      }
+      if (check !== undefined) {
+        if (typeof check !== 'boolean') {
+          throw new Error('[Error] The parameter check should be of boolean type.');
+        }
+      }
+      const {
+        options: {
+          keepId,
+        },
+      } = this;
+      if (keepId === true && check !== false) {
+        const [left, right] = section;
+        let pointer = left;
+        const compounds = [];
+        const {
+          replace: {
+            positive,
+          },
+        } = this;
+        let flag = false;
+        const {
+          options: {
+            memorySafeLine,
+          },
+        } = this;
+        for (let i = left; i <= right; i += 1) {
+          const complex = positive.gain(i);
+          if (complex !== undefined) {
+            const { id, } = complex;
+            if (getLength([pointer, i - 1]) >= 1) {
+              compounds.push({ type: 0, section: [pointer, i - 1], });
+              compounds.push({ type: 1, section: [id, id], });
+              flag = true;
+            } else {
+              compounds.push({ type: 1, section: [id, id], });
+              flag = true;
+            }
+            pointer = i + 1;
+          } else if (complex === undefined && i >= memorySafeLine) {
+            if (getLength([pointer, i - 1]) >= 1) {
+              compounds.push({ type: 0, section: [pointer, i - 1], });
+              compounds.push({ type: 1, section: [i, i], });
+              flag = true;
+            } else {
+              compounds.push({ type: 1, section: [i, i], });
+              flag = true;
+            }
+            pointer = i + 1;
+          }
+        }
+        if (pointer <= right) {
+          compounds.push({ type: 0, section: [pointer, right], });
+        }
+        if (flag === true) {
+          const ans = [];
+          for await (const compound of compounds) {
+            const { type, section: section1, } = compound;
+            const records = await this.select(section1, filters, arrange, true, false);
+            if (type === 1) {
+              const [id] = section;
+              records[0].id = id;
+              ans.push(records);
+            }
+          }
+          return ans.flat();
         }
       }
       if (enter === undefined || enter === true) {
@@ -1615,7 +1752,7 @@ class Table {
               throw new Error('[Error] Unexpected type encountered during query.');
             }
             const [_, id] = mapping;
-            const [record] = await this.select([id, id], filters, arrange, false);
+            const [record] = await this.select([id, id], filters, arrange, false, false);
             exchangeRecords.push(record);
             mappings.push(mapping);
           }

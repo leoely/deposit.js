@@ -21,7 +21,7 @@ beforeAll(() => {
 });
 
 describe('[Class] Distributed proceesSimulation test cases;', () => {
-  test('Test distributed addSystemNotice operations.', async () => {
+  test('Test process simulation related operations.', async () => {
     await timersPromises.setTimeout(2100);
     const global_users_tb5 = global.users.tb5;
     const global_users_tb6 = global.users.tb6;
