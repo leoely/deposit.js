@@ -1522,7 +1522,7 @@ class Table {
       const highSimple = reverse.gain(highId);
       const lowSimple = reverse.gain(lowId);
       if (highSimple === undefined) {
-        positive.attach(highId, { id: lowId, count: 0, });
+        positive.attach(highId, { id: lowId, count: 1, });
         reverse.attach(lowId, highId);
       } else {
         const id = reverse.gain(highId);
@@ -1531,7 +1531,7 @@ class Table {
         reverse.attach(lowId, id);
       }
       if (lowSimple === undefined) {
-        positive.attach(lowId, { id: highId, count: 0, });
+        positive.attach(lowId, { id: highId, count: 1, });
         reverse.attach(highId, lowId);
       } else {
         const id = reverse.gain(lowId);
@@ -1683,6 +1683,7 @@ class Table {
         for (let i = left; i <= right; i += 1) {
           const complex = positive.gain(i);
           if (complex !== undefined) {
+            complex.count += 1;
             const { id, } = complex;
             if (getLength([pointer, i - 1]) >= 1) {
               compounds.push({ type: 0, section: [pointer, i - 1], });

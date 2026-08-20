@@ -20,13 +20,14 @@ describe('[Class] keep id test cases;', () => {
     await global_users_tb.insert({ id: first, name: 'sharon', age: 34, gender: 0, city: 'seattle', country: 'america', });
     const users1 = await global_users_tb.select([first, first]);
     expect(JSON.stringify(users1)).toMatch('[{\"id\":50,\"name\":\"sharon\",\"age\":34,\"gender\":0,\"city\":\"seattle\",\"country\":\"america\"}]');
-    expect(JSON.stringify(global_users_tb.replace.positive.gain(first))).toMatch('{\"id\":0,\"count\":0}');
-    expect(JSON.stringify(global_users_tb.replace.positive.gain(0))).toMatch('{\"id\":50,\"count\":0}');
+    expect(JSON.stringify(global_users_tb.replace.positive.gain(first))).toMatch('{\"id\":0,\"count\":1}');
+    expect(JSON.stringify(global_users_tb.replace.positive.gain(0))).toMatch('{\"id\":50,\"count\":1}');
     expect(global_users_tb.replace.reverse.gain(first)).toBe(0);
     expect(global_users_tb.replace.reverse.gain(0)).toBe(first);
     const users2 = await global_users_tb.select([first, first]);
     expect(JSON.stringify(users2)).toMatch('[{\"id\":50,\"name\":\"sharon\",\"age\":34,\"gender\":0,\"city\":\"seattle\",\"country\":\"america\"}]');
     const users3 = await global_users_tb.select([first, first]);
     expect(JSON.stringify(users3)).toMatch('[{\"id\":50,\"name\":\"sharon\",\"age\":34,\"gender\":0,\"city\":\"seattle\",\"country\":\"america\"}]');
+    expect(JSON.stringify(global_users_tb.replace.positive.gain(first))).toMatch('{\"id\":0,\"count\":3}');
   });
 });
