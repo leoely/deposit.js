@@ -178,6 +178,56 @@ function radixSort(list) {
   return ans;
 }
 
+function radixSortBigInt(list) {
+  if (!Array.isArray(list)) {
+    throw new Error('The parameter list should be an array type.');
+  }
+  list = list.map((e) => [e[0], e]);
+  const bucket = new Array(10);
+  while (true) {
+    for (let i = 0; i < bucket.length; i += 1) {
+      bucket[i] = undefined;
+    }
+    let flag = 0;
+    list.forEach((e, i) => {
+      const [s] = e;
+      const m = Number(s % 10n);
+      if (bucket[m] === undefined) {
+        bucket[m] = [];
+      }
+      bucket[m].unshift(i);
+      const r = s / 10n;
+      if (r !== 0n) {
+        flag += 1;
+      }
+      list[i][0] = r;
+    });
+    if (flag === 0) {
+      break;
+    }
+    const newList = [];
+    for (let i = 0; i < bucket.length; i += 1) {
+      const groove = bucket[9 - i];
+      if (Array.isArray(groove)) {
+        groove.forEach((e) => {
+          newList.unshift(list[e]);
+        });
+      }
+    }
+    list = newList;
+  }
+  const ans = [];
+  for (let i = 0; i < bucket.length; i += 1) {
+    const groove = bucket[9 - i];
+    if (Array.isArray(groove)) {
+      groove.forEach((e) => {
+        ans.unshift(list[e][1]);
+      });
+    }
+  }
+  return ans;
+}
+
 function assignContent(record1, record2) {
   Object.keys(record2).forEach((k) => {
     switch (k) {
@@ -234,7 +284,9 @@ class Table {
       },
     } = this;
     if (keepId === true) {
-      this.replace = {};
+      this.replace = {
+        outOfOrder: true,
+      };
       const {
         replace,
       } = this;
@@ -779,7 +831,7 @@ class Table {
   sortOrders() {
     const { counts, } = this;
     this.orders = counts.map((e, i) => [e, i]);
-    this.orders = radixSort(this.orders);
+    this.orders = radixSortBigInt(this.orders);
     this.outOfOrder = false;
     this.checkMemory();
   }
@@ -877,9 +929,9 @@ class Table {
     const { counts, } = this;
     for (let i = l; i <= r; i += 1) {
       if (counts[i] === undefined) {
-        counts[i] = 0;
+        counts[i] = 0n;
       }
-      counts[i] += 1;
+      counts[i] += 1n;
     }
     this.outOfOrdder = true;
     this.checkMemory();
@@ -1271,7 +1323,7 @@ class Table {
     datas[id] = undefined;
     const { counts, } = this;
     if (counts[id] !== undefined) {
-      counts[id] = 0;
+      counts[id] = 0n;
     } else {
       const {
         length,
@@ -1279,7 +1331,7 @@ class Table {
       if (id === length - 1) {
         let number = 0;
         for (let i = 0; i >= 0; i -= 1) {
-          if (counts[i] === 0 || counts[i] === undefined) {
+          if (counts[i] === 0n || counts[i] === undefined) {
             number += 1;
           } else {
             break;
@@ -1425,7 +1477,7 @@ class Table {
   async getSimpleRecord(id) {
     const { counts, } = this;
     let record;
-    if (counts[id] === undefined || counts[id] === 0) {
+    if (counts[id] === undefined || counts[id] === 0n) {
       const {
         options: {
           type,
@@ -1522,7 +1574,7 @@ class Table {
       const highSimple = reverse.gain(highId);
       const lowSimple = reverse.gain(lowId);
       if (highSimple === undefined) {
-        positive.attach(highId, { id: lowId, count: 1, });
+        positive.attach(highId, { id: lowId, count: 1n, });
         reverse.attach(lowId, highId);
       } else {
         const id = reverse.gain(highId);
@@ -1531,7 +1583,7 @@ class Table {
         reverse.attach(lowId, id);
       }
       if (lowSimple === undefined) {
-        positive.attach(lowId, { id: highId, count: 1, });
+        positive.attach(lowId, { id: highId, count: 1n, });
         reverse.attach(highId, lowId);
       } else {
         const id = reverse.gain(lowId);
@@ -1683,7 +1735,7 @@ class Table {
         for (let i = left; i <= right; i += 1) {
           const complex = positive.gain(i);
           if (complex !== undefined) {
-            complex.count += 1;
+            complex.count += 1n;
             const { id, } = complex;
             if (getLength([pointer, i - 1]) >= 1) {
               compounds.push({ type: 0, section: [pointer, i - 1], });
