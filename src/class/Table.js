@@ -284,9 +284,7 @@ class Table {
       },
     } = this;
     if (keepId === true) {
-      this.replace = {
-        outOfOrder: true,
-      };
+      this.replace = {};
       const {
         replace,
       } = this;
@@ -826,6 +824,22 @@ class Table {
     this.counts = [];
     this.outOfOrder = true;
     this.full = true;
+    const {
+      options: {
+        keepId,
+      },
+    } = this;
+    if (keepId === true) {
+      this.replace = {};
+      const {
+        replace: {
+          positive,
+          reverse,
+        },
+      } = this;
+      positive.ruinAll();
+      reverse.ruinAll();
+    }
   }
 
   sortOrders() {
@@ -1558,13 +1572,72 @@ class Table {
     return mapping;
   }
 
-  syncReplace(highId, lowId) {
+  async cleanReplace() {
     const {
       options: {
         keepId,
       },
     } = this;
     if (keepId === true) {
+      if (!this.checkMemory()) {
+        const {
+          replace,
+        } = this;
+        const {
+          positive,
+          reverse,
+        } = replace;
+        replace.orders = positive.keys().map((key) => {
+          const { id, count, } = positive.gain(key);
+          return [count, id];
+        });
+        replace.orders = radixSortBigInt(replace.orders);
+        const {
+          orders,
+        } = replace;
+        let size = orders.length;
+        while (!this.checkMemory() && size > 0) {
+          const [_, id] = orders.shift();
+          const set = { [id]: true, };
+          let label = id;
+          while (true) {
+            const complex = positive.gain(label)
+            label = complex.id;
+            set[label] = true;
+            label = reverse.gain(label);
+            if (set[label] === true) {
+              break;
+            }
+          }
+          const keys = Object.keys(set).map((k) => parseInt(k));
+          const {
+            length: len,
+          } = keys;
+          let number = keys.length;
+          while (number > 1) {
+            const k1 = keys.pop();
+            const complex1 = positive.gain(k1);
+            const k2 = complex1.id;
+            delete set[k1];
+            this.deleteDataById(k1);
+            this.deleteDataById(k2);
+            await this.exchangeContent(k1, k2);
+            number -= 1;
+          }
+          size -= len;
+        }
+      }
+    }
+  }
+
+  async syncReplace(highId, lowId) {
+    const {
+      options: {
+        keepId,
+      },
+    } = this;
+    if (keepId === true) {
+      await this.cleanReplace();
       const {
         replace: {
           positive,
@@ -1637,7 +1710,7 @@ class Table {
     }
     if (mem !== true) {
       await this.exchangeContent(highId, emptyId);
-      this.syncReplace(highId, emptyId);
+      await this.syncReplace(highId, emptyId);
     }
     this.checkMemory();
     return [highId, emptyId];
@@ -1673,7 +1746,7 @@ class Table {
     if (mem !== true) {
       await this.exchangeContent(highId, lowId);
       this.full = true;
-      this.syncReplace(highId, lowId);
+      await this.syncReplace(highId, lowId);
     }
     return [highId, lowId];
   }
@@ -1735,6 +1808,7 @@ class Table {
         for (let i = left; i <= right; i += 1) {
           const complex = positive.gain(i);
           if (complex !== undefined) {
+            await this.cleanReplace();
             complex.count += 1n;
             const { id, } = complex;
             if (getLength([pointer, i - 1]) >= 1) {
