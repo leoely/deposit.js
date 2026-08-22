@@ -1601,7 +1601,7 @@ class Table {
           const set = { [id]: true, };
           let label = id;
           while (true) {
-            const complex = positive.gain(label)
+            const complex = positive.gain(label);
             label = complex.id;
             set[label] = true;
             label = reverse.gain(label);
@@ -1619,11 +1619,21 @@ class Table {
             const complex1 = positive.gain(k1);
             const k2 = complex1.id;
             delete set[k1];
+            positive.ruin(k1);
+            reverse.ruin(k2);
             this.deleteDataById(k1);
             this.deleteDataById(k2);
             await this.exchangeContent(k1, k2);
             number -= 1;
           }
+          Object.keys(set).forEach((key) => {
+            const k1 = parseInt(key);
+            const complex1 = positive.gain(k1);
+            const k2 = complex1.id;
+            delete set[k1];
+            positive.ruin(k1);
+            reverse.ruin(k2);
+          });
           size -= len;
         }
       }
@@ -1637,7 +1647,6 @@ class Table {
       },
     } = this;
     if (keepId === true) {
-      await this.cleanReplace();
       const {
         replace: {
           positive,
@@ -1646,6 +1655,9 @@ class Table {
       } = this;
       const highSimple = reverse.gain(highId);
       const lowSimple = reverse.gain(lowId);
+      if (highSimple === undefined) {
+        await this.cleanReplace();
+      }
       if (highSimple === undefined) {
         positive.attach(highId, { id: lowId, count: 1n, });
         reverse.attach(lowId, highId);
@@ -1805,10 +1817,10 @@ class Table {
             memorySafeLine,
           },
         } = this;
+        await this.cleanReplace();
         for (let i = left; i <= right; i += 1) {
           const complex = positive.gain(i);
           if (complex !== undefined) {
-            await this.cleanReplace();
             complex.count += 1n;
             const { id, } = complex;
             if (getLength([pointer, i - 1]) >= 1) {
@@ -1887,7 +1899,14 @@ class Table {
           if (this.mappings === undefined) {
             this.mappings = mappings;
           } else {
-            throw new Error('[Error] The result of the last high-level index hash not been obtained yet.');
+            const {
+              options: {
+                keepId,
+              },
+            } = this;
+            if (keepId !== true) {
+              throw new Error('[Error] The result of the last high-level index hash not been obtained yet.');
+            }
           }
           this.full = false;
           return originRecords.concat(exchangeRecords);

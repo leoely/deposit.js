@@ -32,7 +32,7 @@ describe('[Class] keep id test cases;', () => {
     expect(JSON.stringify(users3)).toMatch('[{\"id\":50,\"name\":\"sharon\",\"age\":34,\"gender\":0,\"city\":\"seattle\",\"country\":\"america\"}]');
     expect(JSON.stringify(global_users_tb.replace.positive.gain(first), stringifyBigInt)).toMatch('{\"id\":0,\"count\":3}');
     global_users_tb.setTemporaryMemorySwitch(true);
-    const users4 = await global_users_tb.select([0, 0]);
-    //expect(JSON.stringify(users4)).toMatch('[{\"id\":50,\"name\":\"sharon\",\"age\":34,\"gender\":0,\"city\":\"seattle\",\"country\":\"america\"}]');
+    const users4 = await global_users_tb.select([first, first]);
+    expect(JSON.stringify(users4)).toMatch('[{\"id\":50,\"name\":\"sharon\",\"age\":34,\"gender\":0,\"city\":\"seattle\",\"country\":\"america\"}]');
   });
 });
