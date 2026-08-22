@@ -4,7 +4,7 @@ import Users from '~/class/table/MysqlKeepIdUsers';
 import global from '~/obj/testGlobal';
 
 const first = 50;
-const seconed = 51;
+const second = 51;
 const third = 52;
 
 const stringifyBigInt = (key, value) => typeof value === "bigint" ? JSON.rawJSON(value.toString()) : value;
@@ -34,5 +34,22 @@ describe('[Class] keep id test cases;', () => {
     global_users_tb.setTemporaryMemorySwitch(true);
     const users4 = await global_users_tb.select([first, first]);
     expect(JSON.stringify(users4)).toMatch('[{\"id\":50,\"name\":\"sharon\",\"age\":34,\"gender\":0,\"city\":\"seattle\",\"country\":\"america\"}]');
+    global_users_tb.setTemporaryMemorySwitch(false);
+    await global_users_tb.insert({ id: second, name: 'jerald', age: 41, gender: 1, city: 'dallas', country: 'america', });
+    await global_users_tb.insert({ id: third, name: 'percy', age: 28, gender: 0, city: 'denver', country: 'america', });
+    const users5 = await global_users_tb.select([second, second]);
+    expect(JSON.stringify(users5)).toMatch('[{\"id\":51,\"name\":\"jerald\",\"age\":41,\"gender\":1,\"city\":\"dallas\",\"country\":\"america\"}]');
+    const users6 = await global_users_tb.select([third, third]);
+    expect(JSON.stringify(users6)).toMatch('[{\"id\":52,\"name\":\"percy\",\"age\":28,\"gender\":0,\"city\":\"denver\",\"country\":\"america\"}]');
+    const users7 = await global_users_tb.select([second, second]);
+    expect(JSON.stringify(users7)).toMatch('[{\"id\":51,\"name\":\"jerald\",\"age\":41,\"gender\":1,\"city\":\"dallas\",\"country\":\"america\"}]');
+    const users8 = await global_users_tb.select([second, second]);
+    expect(JSON.stringify(users8)).toMatch('[{\"id\":51,\"name\":\"jerald\",\"age\":41,\"gender\":1,\"city\":\"dallas\",\"country\":\"america\"}]');
+    const users9 = await global_users_tb.select([third, third]);
+    expect(JSON.stringify(users9)).toMatch('[{\"id\":52,\"name\":\"percy\",\"age\":28,\"gender\":0,\"city\":\"denver\",\"country\":\"america\"}]');
+    const users10 = await global_users_tb.select([first, first]);
+    expect(JSON.stringify(users10)).toMatch('[{\"id\":50,\"name\":\"sharon\",\"age\":34,\"gender\":0,\"city\":\"seattle\",\"country\":\"america\"}]');
+    const users11 = await global_users_tb.select([first, first]);
+    expect(JSON.stringify(users11)).toMatch('[{\"id\":50,\"name\":\"sharon\",\"age\":34,\"gender\":0,\"city\":\"seattle\",\"country\":\"america\"}]');
   });
 });
