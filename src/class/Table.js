@@ -245,6 +245,7 @@ async function getDiskUsage() {
   return diskUsage;
 }
 
+const singleBindedEventKey = Symbol('singleBindedEvent');
 const temporaryDiskAvailableKey = Symbol('temporaryDiskAvailable');
 const temporaryUpdateDiskAvailableKey = Symbol('temporaryUpdateDiskAvailable');
 
@@ -284,7 +285,10 @@ class Table {
       },
     } = this;
     if (keepId === true) {
-      this.replace = {};
+      this.replace = {
+        orders: [],
+        outOfOrder: true,
+      };
       const {
         replace,
       } = this;
@@ -353,7 +357,42 @@ class Table {
         `);
       }
     }
+    this.bindEvent();
     this.checkMemory();
+  }
+
+  static cleanUpTables = [];
+
+  async cleanUp() {
+    const {
+      cleanUpTables,
+    } = Table;
+    for await (const cleanUpTable of cleanUpTables) {
+      await cleanUpTables.emptyReplace();
+    }
+  }
+
+  bindEvent() {
+    const {
+      options: {
+        keepId,
+      },
+    } = this;
+    if (keepId === true) {
+      if (process[singleBindedEventKey] !== true) {
+        process.on('SIGINT', this.cleanUp);
+        process.on('SIGHUP', this.cleanUp);
+        process.on('SIGQUIT', this.cleanUp);
+        process.on('SIGTERM', this.cleanUp);
+        process.on('uncaughtException', this.cleanUp);
+        process.on('exit', this.cleanUp);
+        process[singleBindedEventKey] = true;
+      }
+      const {
+        cleanUpTables,
+      } = Table;
+      cleanUpTables.push(this);
+    }
   }
 
   async insertNote(type, connection, tb, objs, instance) {
@@ -830,7 +869,9 @@ class Table {
       },
     } = this;
     if (keepId === true) {
-      this.replace = {};
+      this.replace = {
+        outOfOrder: false,
+      };
       const {
         replace: {
           positive,
@@ -1572,6 +1613,77 @@ class Table {
     return mapping;
   }
 
+  async removeSingleReplace(id, sizeWrap) {
+    const {
+      replace: {
+        reverse,
+        positive,
+      },
+    } = this;
+    const set = { [id]: true, };
+    let label = id;
+    while (true) {
+      const complex = positive.gain(label);
+      label = complex.id;
+      set[label] = true;
+      label = reverse.gain(label);
+      if (set[label] === true) {
+        break;
+      }
+    }
+    const keys = Object.keys(set).map((k) => parseInt(k));
+    const {
+      length: len,
+    } = keys;
+    let number = keys.length;
+    while (number > 1) {
+      const k1 = keys.pop();
+      const complex1 = positive.gain(k1);
+      const k2 = complex1.id;
+      delete set[k1];
+      positive.ruin(k1);
+      reverse.ruin(k2);
+      this.deleteDataById(k1);
+      this.deleteDataById(k2);
+      await this.exchangeContent(k1, k2);
+      number -= 1;
+    }
+    Object.keys(set).forEach((key) => {
+      const k1 = parseInt(key);
+      const complex1 = positive.gain(k1);
+      const k2 = complex1.id;
+      delete set[k1];
+      positive.ruin(k1);
+      reverse.ruin(k2);
+    });
+    sizeWrap.val -= len;
+  }
+
+  async emptyReplace() {
+    const {
+      options: {
+        keepId,
+      },
+    } = this;
+    if (keepId === true) {
+      const {
+        replace: {
+          positive,
+          reverse,
+        }
+      } = this;
+      const ids = positive.keys().map((key) => {
+        const { id, } = positive.gain(key);
+        return id;
+      });
+      let sizeWrap = { val: ids.length, };
+      while (sizeWrap.val > 0) {
+        const [_, id] = ids.shift();
+        await this.removeSingleReplace(id, sizeWrap);
+      }
+    }
+  }
+
   async cleanReplace() {
     const {
       options: {
@@ -1586,55 +1698,22 @@ class Table {
         const {
           positive,
           reverse,
+          outOfOrder,
         } = replace;
-        replace.orders = positive.keys().map((key) => {
-          const { id, count, } = positive.gain(key);
-          return [count, id];
-        });
-        replace.orders = radixSortBigInt(replace.orders);
+        if (outOfOrder === true) {
+          replace.orders = positive.keys().map((key) => {
+            const { id, count, } = positive.gain(key);
+            return [count, id];
+          });
+          replace.orders = radixSortBigInt(replace.orders);
+        }
         const {
           orders,
         } = replace;
-        let size = orders.length;
-        while (!this.checkMemory() && size > 0) {
+        let sizeWrap = { val: orders.length, };
+        while (!this.checkMemory() && sizeWrap.val > 0) {
           const [_, id] = orders.shift();
-          const set = { [id]: true, };
-          let label = id;
-          while (true) {
-            const complex = positive.gain(label);
-            label = complex.id;
-            set[label] = true;
-            label = reverse.gain(label);
-            if (set[label] === true) {
-              break;
-            }
-          }
-          const keys = Object.keys(set).map((k) => parseInt(k));
-          const {
-            length: len,
-          } = keys;
-          let number = keys.length;
-          while (number > 1) {
-            const k1 = keys.pop();
-            const complex1 = positive.gain(k1);
-            const k2 = complex1.id;
-            delete set[k1];
-            positive.ruin(k1);
-            reverse.ruin(k2);
-            this.deleteDataById(k1);
-            this.deleteDataById(k2);
-            await this.exchangeContent(k1, k2);
-            number -= 1;
-          }
-          Object.keys(set).forEach((key) => {
-            const k1 = parseInt(key);
-            const complex1 = positive.gain(k1);
-            const k2 = complex1.id;
-            delete set[k1];
-            positive.ruin(k1);
-            reverse.ruin(k2);
-          });
-          size -= len;
+          await this.removeSingleReplace(id, sizeWrap);
         }
       }
     }
@@ -1648,11 +1727,13 @@ class Table {
     } = this;
     if (keepId === true) {
       const {
-        replace: {
-          positive,
-          reverse,
-        }
+        replace,
       } = this;
+      const {
+        positive,
+        reverse,
+        orders,
+      } = replace;
       const highSimple = reverse.gain(highId);
       const lowSimple = reverse.gain(lowId);
       if (highSimple === undefined) {
@@ -1661,6 +1742,8 @@ class Table {
       if (highSimple === undefined) {
         positive.attach(highId, { id: lowId, count: 1n, });
         reverse.attach(lowId, highId);
+        orders.unshift([1n, lowId]);
+        replace.outOfOrder = false;
       } else {
         const id = reverse.gain(highId);
         const p = positive.gain(id);
@@ -1670,6 +1753,8 @@ class Table {
       if (lowSimple === undefined) {
         positive.attach(lowId, { id: highId, count: 1n, });
         reverse.attach(highId, lowId);
+        orders.unshift([1n, highId]);
+        replace.outOfOrder = false;
       } else {
         const id = reverse.gain(lowId);
         const p = positive.gain(id);
@@ -1807,10 +1892,11 @@ class Table {
         let pointer = left;
         const compounds = [];
         const {
-          replace: {
-            positive,
-          },
+          replace,
         } = this;
+        const {
+          positive,
+        } = replace;
         let flag = false;
         const {
           options: {
@@ -1822,6 +1908,7 @@ class Table {
           const complex = positive.gain(i);
           if (complex !== undefined) {
             complex.count += 1n;
+            replace.outOfOrder = true;
             const { id, } = complex;
             if (getLength([pointer, i - 1]) >= 1) {
               compounds.push({ type: 0, section: [pointer, i - 1], });
