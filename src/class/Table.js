@@ -361,15 +361,13 @@ class Table {
     this.checkMemory();
   }
 
-  static cleanUpTables = [];
+  static cleanUpTable = null;
 
   async cleanUp() {
     const {
-      cleanUpTables,
+      cleanUpTable,
     } = Table;
-    for await (const cleanUpTable of cleanUpTables) {
-      await cleanUpTables.emptyReplace();
-    }
+    await cleanUpTable.emptyReplace();
   }
 
   bindEvent() {
@@ -379,19 +377,18 @@ class Table {
       },
     } = this;
     if (keepId === true) {
-      if (process[singleBindedEventKey] !== true) {
+      const {
+        cleanUpTable,
+      } = Table;
+      if (cleanUpTable === null) {
+        Table.cleanUpTable = this;
         process.on('SIGINT', this.cleanUp);
         process.on('SIGHUP', this.cleanUp);
         process.on('SIGQUIT', this.cleanUp);
         process.on('SIGTERM', this.cleanUp);
         process.on('uncaughtException', this.cleanUp);
         process.on('exit', this.cleanUp);
-        process[singleBindedEventKey] = true;
       }
-      const {
-        cleanUpTables,
-      } = Table;
-      cleanUpTables.push(this);
     }
   }
 
@@ -1613,6 +1610,109 @@ class Table {
     return mapping;
   }
 
+  async attachPositive(key, complex) {
+    const {
+      replace: {
+        positive,
+      },
+      constructor: {
+        name,
+      },
+    } = this;
+    if (/Distrib/.test(name)) {
+      await this.attachPositiveDistrib(key, complex);
+    } else {
+      positive.attach(key, complex);
+    }
+  }
+
+  async attachReverse(key, id) {
+    const {
+      replace: {
+        reverse,
+      },
+      constructor: {
+        name,
+      },
+    } = this;
+    if (/Distrib/.test(name)) {
+      await this.attachReverseDistrib(key, id);
+    } else {
+      reverse.attach(key, id);
+    }
+  }
+
+  async ruinPositive(key) {
+    const {
+      replace: {
+        positive,
+      },
+      constructor: {
+        name,
+      },
+    } = this;
+    if (/Distrib/.test(name)) {
+      await this.ruinPositiveDistrib(key);
+    } else {
+      positive.ruin(key);
+    }
+  }
+
+  async ruinReverse(key) {
+    const {
+      replace: {
+        reverse,
+      },
+      constructor: {
+        name,
+      },
+    } = this;
+    if (/Distrib/.test(name)) {
+      await this.ruinReverseDistrib(key);
+    } else {
+      reverse.ruin(key);
+    }
+  }
+
+  async setReplaceOutOfOrder(outOfOrder) {
+    const {
+      replace,
+      constructor: {
+        name,
+      },
+    } = this;
+    if (/Distrib/.test(name)) {
+      await this.setReplaceOutOfOrderDistrib(outOfOrder);
+    } else {
+      replace.outOfOrder = outOfOrder;
+    }
+  }
+
+  async setReplaceOrders(orders) {
+    const {
+      replace,
+      constructor: {
+        name,
+      },
+    } = this;
+    if (/Distrib/.test(name)) {
+      await this.setReplaceOrdersDistrib(orders);
+    }
+  }
+
+  async removeDataById(id) {
+    const {
+      constructor: {
+        name,
+      },
+    } = this;
+    if (/Distrib/.test(name)) {
+      await this.deleteDataByIdDistrib(id);
+    } else {
+      this.deleteDataById(id);
+    }
+  }
+
   async removeSingleReplace(id, sizeWrap) {
     const {
       replace: {
@@ -1631,7 +1731,7 @@ class Table {
         break;
       }
     }
-    const keys = Object.keys(set).map((k) => parseInt(k));
+    let keys = Object.keys(set).map((k) => parseInt(k));
     const {
       length: len,
     } = keys;
@@ -1641,21 +1741,21 @@ class Table {
       const complex1 = positive.gain(k1);
       const k2 = complex1.id;
       delete set[k1];
-      positive.ruin(k1);
-      reverse.ruin(k2);
-      this.deleteDataById(k1);
-      this.deleteDataById(k2);
+      await this.ruinPositive(k1);
+      await this.ruinReverse(k2);
+      await this.removeDataById(k1);
+      await this.removeDataById(k2);
       await this.exchangeContent(k1, k2);
       number -= 1;
     }
-    Object.keys(set).forEach((key) => {
-      const k1 = parseInt(key);
+    keys = Object.keys(set).map((k) => parseInt(k));
+    for await (const k1 of keys) {
       const complex1 = positive.gain(k1);
       const k2 = complex1.id;
       delete set[k1];
-      positive.ruin(k1);
-      reverse.ruin(k2);
-    });
+      await this.ruinPositive(k1);
+      await this.ruinReverse(k2);
+    }
     sizeWrap.val -= len;
   }
 
@@ -1700,16 +1800,17 @@ class Table {
           reverse,
           outOfOrder,
         } = replace;
+        let {
+          orders,
+        } = replace;
         if (outOfOrder === true) {
-          replace.orders = positive.keys().map((key) => {
+          orders = positive.keys().map((key) => {
             const { id, count, } = positive.gain(key);
             return [count, id];
           });
-          replace.orders = radixSortBigInt(replace.orders);
+          orders = radixSortBigInt(orders);
+          await this.setReplaceOrders(orders);
         }
-        const {
-          orders,
-        } = replace;
         let sizeWrap = { val: orders.length, };
         while (!this.checkMemory() && sizeWrap.val > 0) {
           const [_, id] = orders.shift();
@@ -1740,26 +1841,28 @@ class Table {
         await this.cleanReplace();
       }
       if (highSimple === undefined) {
-        positive.attach(highId, { id: lowId, count: 1n, });
-        reverse.attach(lowId, highId);
+        await this.attachPositive(highId, { id: lowId, count: 1n, });
+        await this.attachReverse(lowId, highId);
         orders.unshift([1n, lowId]);
-        replace.outOfOrder = false;
+        await this.setReplaceOrders(orders);
+        await this.setReplaceOutOfOrder(false);
       } else {
         const id = reverse.gain(highId);
         const p = positive.gain(id);
         p.id = lowId;
-        reverse.attach(lowId, id);
+        await this.attachReverse(lowId, id);
       }
       if (lowSimple === undefined) {
-        positive.attach(lowId, { id: highId, count: 1n, });
-        reverse.attach(highId, lowId);
+        await this.attachPositive(lowId, { id: highId, count: 1n, });
+        await this.attachReverse(highId, lowId);
         orders.unshift([1n, highId]);
-        replace.outOfOrder = false;
+        await this.setReplaceOrders(orders);
+        await this.setReplaceOutOfOrder(false);
       } else {
         const id = reverse.gain(lowId);
         const p = positive.gain(id);
         p.id = highId;
-        reverse.attach(highId, id);
+        await this.attachReverse(highId, id);
       }
     }
   }

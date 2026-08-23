@@ -576,6 +576,25 @@ class DistribTable extends Table {
     const code = Number(bigInt1);
     let params;
     switch (code) {
+      case 11:
+        params = segments.map((segment, index) => {
+          switch (index) {
+            case 0:
+              return JSON.parse(segment.toString());
+          }
+        });
+        break;
+      case 10:
+        params = segments.map((segment) => {
+          const bigInt = nonZeroByteArray.toInt(segment);
+          switch (bigInt) {
+            case 0n:
+              return false;
+            case 1n:
+              return true;
+          }
+        });
+        break;
       case 4:
         params = segments.map((segment, index) => {
           switch (index) {
@@ -661,8 +680,101 @@ class DistribTable extends Table {
         socket.write(addBufferFlag(0, Buffer.from('ack')));
         break;
       }
+      case 6: {
+        if (params.length !== 3) {
+          throw new Error('[Error] The parameters length should be equal to three.');
+        }
+        const [key, id, count] = params;
+        const {
+          replace: {
+            positive,
+          },
+        } = this;
+        positive.attach(Number(key), { id: Number(id), count: Number(count), });
+        socket.write(addBufferFlag(0, Buffer.from('ack')));
+        break;
+      }
+      case 7: {
+        if (params.length !== 2) {
+          throw new Error('[Error] The parameters length should be equal to two.');
+        }
+        const [key, id] = params;
+        const {
+          replace: {
+            reverse,
+          },
+        } = this;
+        reverse.attach(Number(key), Number(id));
+        socket.write(addBufferFlag(0, Buffer.from('ack')));
+        break;
+      }
+      case 8: {
+        if (params.length !== 1) {
+          throw new Error('[Error] The parameters length should be equal to one.');
+        }
+        const [key] = params;
+        const {
+          replace: {
+            positive,
+          },
+        } = this;
+        positive.ruin(Number(key));
+        socket.write(addBufferFlag(0, Buffer.from('ack')));
+        break;
+      }
+      case 9: {
+        if (params.length !== 1) {
+          throw new Error('[Error] The parameters length should be equal to one.');
+        }
+        const [key] = params;
+        const {
+          replace: {
+            reverse,
+          },
+        } = this;
+        reverse.ruin(Number(key));
+        socket.write(addBufferFlag(0, Buffer.from('ack')));
+        break;
+      }
+      case 10: {
+        if (params.length !== 1) {
+          throw new Error('[Error] The parameters length should be equal to one.');
+        }
+        const [outOfOrder] = params;
+        const {
+          replace,
+        } = this;
+        replace.outOfOrder = outOfOrder;
+        socket.write(addBufferFlag(0, Buffer.from('ack')));
+        break;
+      }
+      case 11: {
+        if (params.length !== 1) {
+          throw new Error('[Error] The parameters length should be equal to one.');
+        }
+        const [orders] = params;
+        const {
+          replace,
+        } = this;
+        replace.orders = orders;
+        socket.write(addBufferFlag(0, Buffer.from('ack')));
+      }
+      case 12: {
+        if (params.length !== 1) {
+          throw new Error('[Error] The parameters length should be equal to one.');
+        }
+        const [id] = params;
+        this.deleteDataById(id);
+        if (this.outOfOrder !== false) {
+          this.outOfOrder = false;
+        }
+        if (this.full !== true) {
+          this.full = true;
+        }
+        socket.write(addBufferFlag(0, Buffer.from('ack')));
+      }
       default:
-        throw new Error('[Error] The code value should be in the range [0, 5]');
+        throw new Error('[Error] The code value should be in the range [0, 11].');
     }
   }
 
@@ -839,6 +951,156 @@ class DistribTable extends Table {
       this.outputDistribOperate('removeTable distrib');
     } catch (error) {
       this.outputDistribOperateError('removeTable distrib', error);
+    }
+  }
+
+  async attachPositiveDistrib(key, complex) {
+    try {
+      this.checkCombine();
+      const {
+        replace: {
+          positive,
+        },
+      } = this;
+      positive.attach(key, complex);
+      const {
+        id,
+        count,
+      } = complex;
+      const ackPromises = this.getAckPromises((socket) => {
+        socket.write(addBufferFlag(1, getBinBuf([6, key, id, count])));
+      });
+      await Promise.all(ackPromises);
+      this.outputDistribOperate('attachPositivee distrib');
+    } catch (error) {
+      this.outputDistribOperateError('attachPositive distrib', error);
+    }
+  }
+
+  async attachReverseDistrib(key, id) {
+    try {
+      this.checkCombine();
+      const {
+        replace: {
+          reverse,
+        },
+      } = this;
+      reverse.attach(key, complex);
+      const ackPromises = this.getAckPromises((socket) => {
+        socket.write(addBufferFlag(1, getBinBuf([7, key, id])));
+      });
+      await Promise.all(ackPromises);
+      this.outputDistribOperate('attachReverse distrib');
+    } catch (error) {
+      this.outputDistribOperateError('attachReverse distrib', error);
+    }
+  }
+
+  async ruinPositiveDistrib(key) {
+    try {
+      this.checkCombine();
+      const {
+        replace: {
+          positive,
+        },
+      } = this;
+      positive.ruin(key);
+      const ackPromises = this.getAckPromises((socket) => {
+        socket.write(addBufferFlag(1, getBinBuf([8, key])));
+      });
+      await Promise.all(ackPromises);
+      this.outputDistribOperate('ruinPositive distrib');
+    } catch (error) {
+      this.outputDistribOperateError('ruinPositive distrib', error);
+    }
+  }
+
+  async ruinReverseDistrib(key) {
+    try {
+      this.checkCombine();
+      const {
+        replace: {
+          reverse,
+        },
+      } = this;
+      reverse.ruin(key);
+      const ackPromises = this.getAckPromises((socket) => {
+        socket.write(addBufferFlag(1, getBinBuf([9, key])));
+      });
+      await Promise.all(ackPromises);
+      this.outputDistribOperate('ruinReverse distrib');
+    } catch (error) {
+      this.outputDistribOperateError('ruinReverse distrib', error);
+    }
+  }
+
+  async setReplaceOutOfOrderDistrib(outOfOrder) {
+    try {
+      this.checkCombine();
+      const {
+        replace,
+      } = this;
+      replace.outOfOrder = outOfOrdere;
+      const ackPromises = this.getAckPromises((socket) => {
+        socket.write(addBufferFlag(1, getBinBuf([10, key])));
+      });
+      await Promise.all(ackPromises);
+      this.outputDistribOperate('setReplaceOutOfOrder distrib');
+    } catch (error) {
+      this.outputDistribOperateError('setReplaceOutOfOrder distrib', error);
+    }
+  }
+
+  async setReplaceOutOfOrderDistrib(outOfOrder) {
+    try {
+      this.checkCombine();
+      const {
+        replace,
+      } = this;
+      replace.outOfOrder = outOfOrdere;
+      const ackPromises = this.getAckPromises((socket) => {
+        socket.write(addBufferFlag(1, getBinBuf([10, key])));
+      });
+      await Promise.all(ackPromises);
+      this.outputDistribOperate('setReplaceOutOfOrder distrib');
+    } catch (error) {
+      this.outputDistribOperateError('setReplaceOutOfOrder distrib', error);
+    }
+  }
+
+  async setReplaceOrdersDistrib(orders) {
+    try {
+      this.checkCombine();
+      const {
+        replace,
+      } = this;
+      const ackPromises = this.getAckPromises((socket) => {
+        socket.write(addBufferFlag(1, getBinBuf([11, JSON.stringify(orders)])));
+      });
+      await Promise.all(ackPromises);
+      this.outputDistribOperate('setReplaceOrders distrib');
+    } catch (error) {
+      this.outputDistribOperateError('setReplaceOrders distrib', error);
+    }
+  }
+
+  async deleteDataByIdDistrib(id) {
+    try {
+      this.checkCombine();
+      this.deleteDataById(id);
+      if (this.outOfOrder !== false) {
+        this.outOfOrder = false;
+      }
+      if (this.full !== true) {
+        this.full = true;
+      }
+      const ackPromises = this.getAckPromises((socket) => {
+        socket.write(addBufferFlag(1, getBinBuf([12, id])));
+      });
+      await Promise.all(ackPromises);
+      this.outputDistribOperate('deleteDataById distrib');
+    } catch (error) {
+      this.outputDistribOperateError('deleteDataById distrib', error);
     }
   }
 }
