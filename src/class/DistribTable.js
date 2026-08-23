@@ -9,6 +9,7 @@ import {
 } from 'manner.js/server';
 import Table from './Table';
 
+const stringifyBigInt = (key, value) => typeof value === "bigint" ? JSON.rawJSON(value.toString()) : value;
 const nonZeroByteArray = new ByteArray({ size: 256n, shift: 1n, });
 
 function getBinBuf(params) {
@@ -223,10 +224,10 @@ class DistribTable extends Table {
 
   dealParams(port, allTables) {
     if (!Number.isInteger(port)) {
-      throw new Error('[Error] Parameter id needs to be an integer.');
+      throw new Error('[Error] Parameter port needs to be an integer.');
     }
     if (!(port >= 0)) {
-      throw new Error('[Error] Parameter id needs to be a postive integer.');
+      throw new Error('[Error] Parameter port needs to be a postive integer.');
     }
     this.port = port;
     if (!Array.isArray(allTables)) {
@@ -606,6 +607,7 @@ class DistribTable extends Table {
         });
         break;
       case 5:
+      case 7:
         params = segments.map((segment, index) => {
           switch (index) {
             case 0:
@@ -985,7 +987,7 @@ class DistribTable extends Table {
           reverse,
         },
       } = this;
-      reverse.attach(key, complex);
+      reverse.attach(key, id);
       const ackPromises = this.getAckPromises((socket) => {
         socket.write(addBufferFlag(1, getBinBuf([7, key, id])));
       });
@@ -1075,7 +1077,7 @@ class DistribTable extends Table {
         replace,
       } = this;
       const ackPromises = this.getAckPromises((socket) => {
-        socket.write(addBufferFlag(1, getBinBuf([11, JSON.stringify(orders)])));
+        socket.write(addBufferFlag(1, getBinBuf([11, JSON.stringify(orders, stringifyBigInt)])));
       });
       await Promise.all(ackPromises);
       this.outputDistribOperate('setReplaceOrders distrib');

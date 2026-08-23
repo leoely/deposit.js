@@ -1612,9 +1612,6 @@ class Table {
 
   async attachPositive(key, complex) {
     const {
-      replace: {
-        positive,
-      },
       constructor: {
         name,
       },
@@ -1622,15 +1619,17 @@ class Table {
     if (/Distrib/.test(name)) {
       await this.attachPositiveDistrib(key, complex);
     } else {
+      const {
+        replace: {
+          positive,
+        },
+      } = this;
       positive.attach(key, complex);
     }
   }
 
   async attachReverse(key, id) {
     const {
-      replace: {
-        reverse,
-      },
       constructor: {
         name,
       },
@@ -1638,15 +1637,17 @@ class Table {
     if (/Distrib/.test(name)) {
       await this.attachReverseDistrib(key, id);
     } else {
+      const {
+        replace: {
+          reverse,
+        },
+      } = this;
       reverse.attach(key, id);
     }
   }
 
   async ruinPositive(key) {
     const {
-      replace: {
-        positive,
-      },
       constructor: {
         name,
       },
@@ -1654,6 +1655,11 @@ class Table {
     if (/Distrib/.test(name)) {
       await this.ruinPositiveDistrib(key);
     } else {
+    const {
+      replace: {
+        positive,
+      },
+    } = this;
       positive.ruin(key);
     }
   }
@@ -1670,13 +1676,17 @@ class Table {
     if (/Distrib/.test(name)) {
       await this.ruinReverseDistrib(key);
     } else {
+      const {
+        replace: {
+          reverse,
+        },
+      } = this;
       reverse.ruin(key);
     }
   }
 
   async setReplaceOutOfOrder(outOfOrder) {
     const {
-      replace,
       constructor: {
         name,
       },
@@ -1684,13 +1694,15 @@ class Table {
     if (/Distrib/.test(name)) {
       await this.setReplaceOutOfOrderDistrib(outOfOrder);
     } else {
+      const {
+        replace,
+      } = this;
       replace.outOfOrder = outOfOrder;
     }
   }
 
   async setReplaceOrders(orders) {
     const {
-      replace,
       constructor: {
         name,
       },
