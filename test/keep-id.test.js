@@ -51,5 +51,17 @@ describe('[Class] keep id test cases;', () => {
     expect(JSON.stringify(users10)).toMatch('[{\"id\":50,\"name\":\"sharon\",\"age\":34,\"gender\":0,\"city\":\"seattle\",\"country\":\"america\"}]');
     const users11 = await global_users_tb.select([first, first]);
     expect(JSON.stringify(users11)).toMatch('[{\"id\":50,\"name\":\"sharon\",\"age\":34,\"gender\":0,\"city\":\"seattle\",\"country\":\"america\"}]');
+    global_users_tb.setTemporaryMemorySwitch(true);
+    const users12 = await global_users_tb.select([second, second]);
+    expect(JSON.stringify(users12)).toMatch('[{\"id\":51,\"name\":\"jerald\",\"age\":41,\"gender\":1,\"city\":\"dallas\",\"country\":\"america\"}]');
+    const users13 = await global_users_tb.select([second, second]);
+    expect(JSON.stringify(users13)).toMatch('[{\"id\":51,\"name\":\"jerald\",\"age\":41,\"gender\":1,\"city\":\"dallas\",\"country\":\"america\"}]');
+    const users14 = await global_users_tb.select([first, first]);
+    expect(JSON.stringify(users14)).toMatch('[{\"id\":50,\"name\":\"sharon\",\"age\":34,\"gender\":0,\"city\":\"seattle\",\"country\":\"america\"}]');
+    const users15 = await global_users_tb.select([first, first]);
+    expect(JSON.stringify(users15)).toMatch('[{\"id\":50,\"name\":\"sharon\",\"age\":34,\"gender\":0,\"city\":\"seattle\",\"country\":\"america\"}]');
+    const users16 = await global_users_tb.select([third, third]);
+    expect(JSON.stringify(users16)).toMatch('[{\"id\":52,\"name\":\"percy\",\"age\":28,\"gender\":0,\"city\":\"denver\",\"country\":\"america\"}]');
+    global_users_tb.setTemporaryMemorySwitch(false);
   });
 });

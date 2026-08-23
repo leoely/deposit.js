@@ -1713,7 +1713,7 @@ class Table {
     }
   }
 
-  async removeSingleReplace(id, sizeWrap) {
+  async removeSingleReplace(type, id, sizeWrap) {
     const {
       replace: {
         reverse,
@@ -1741,6 +1741,7 @@ class Table {
       const complex1 = positive.gain(k1);
       const k2 = complex1.id;
       delete set[k1];
+      this.removeIdsElementById(type, id, k1);
       await this.ruinPositive(k1);
       await this.ruinReverse(k2);
       await this.removeDataById(k1);
@@ -1753,10 +1754,25 @@ class Table {
       const complex1 = positive.gain(k1);
       const k2 = complex1.id;
       delete set[k1];
+      this.removeIdsElementById(type, id, k1);
       await this.ruinPositive(k1);
       await this.ruinReverse(k2);
     }
     sizeWrap.val -= len;
+  }
+
+  removeIdsElementById(type, id, k1) {
+    const {
+      replace,
+    } = this;
+    switch (type) {
+      case 0:
+        replace.orders = replace.orders.filter(([count, id]) => id !== k1)
+        break;
+      case 1:
+        replace.ids = replace.ids.filter(([count, id]) => id !== k1)
+        break;
+    }
   }
 
   async emptyReplace() {
@@ -1772,15 +1788,22 @@ class Table {
           reverse,
         }
       } = this;
-      const ids = positive.keys().map((key) => {
+      this.replace.ids = positive.keys().map((key) => {
         const { id, } = positive.gain(key);
         return id;
       });
-      let sizeWrap = { val: ids.length, };
+      const sizeWrap = { val: ids.length, };
+      let {
+        replace: {
+          ids,
+        },
+      } = this;
       while (sizeWrap.val > 0) {
+        ids = this.replace.ids;
         const [_, id] = ids.shift();
-        await this.removeSingleReplace(id, sizeWrap);
+        await this.removeSingleReplace(1, id, sizeWrap);
       }
+      delete this.replace.ids;
     }
   }
 
@@ -1811,10 +1834,11 @@ class Table {
           orders = radixSortBigInt(orders);
           await this.setReplaceOrders(orders);
         }
-        let sizeWrap = { val: orders.length, };
+        const sizeWrap = { val: orders.length, };
         while (!this.checkMemory() && sizeWrap.val > 0) {
+          orders = this.replace.orders;
           const [_, id] = orders.shift();
-          await this.removeSingleReplace(id, sizeWrap);
+          await this.removeSingleReplace(0, id, sizeWrap);
         }
       }
     }
