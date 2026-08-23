@@ -549,9 +549,9 @@ class DistribTable extends Table {
     try {
       const { clients, connections, } = this;
       this.sockets = clients.concat(connections);
-      const { sockets: socketList, } = this;
+      const { sockets, } = this;
       if (bind === true) {
-        socketList.forEach((socket) => {
+        sockets.forEach((socket) => {
           socket.on('data', (buffer) => {
             this.dealReceiveAndSendBuffer(buffer, socket);
           });
@@ -607,7 +607,6 @@ class DistribTable extends Table {
         });
         break;
       case 5:
-      case 7:
         params = segments.map((segment, index) => {
           switch (index) {
             case 0:
@@ -692,7 +691,7 @@ class DistribTable extends Table {
             positive,
           },
         } = this;
-        positive.attach(Number(key), { id: Number(id), count: Number(count), });
+        positive.attach(Number(key), { id: Number(id), count, });
         socket.write(addBufferFlag(0, Buffer.from('ack')));
         break;
       }
@@ -760,6 +759,7 @@ class DistribTable extends Table {
         } = this;
         replace.orders = orders;
         socket.write(addBufferFlag(0, Buffer.from('ack')));
+        break;
       }
       case 12: {
         if (params.length !== 1) {
@@ -774,6 +774,7 @@ class DistribTable extends Table {
           this.full = true;
         }
         socket.write(addBufferFlag(0, Buffer.from('ack')));
+        break;
       }
       default:
         throw new Error('[Error] The code value should be in the range [0, 11].');
@@ -1033,23 +1034,6 @@ class DistribTable extends Table {
       this.outputDistribOperate('ruinReverse distrib');
     } catch (error) {
       this.outputDistribOperateError('ruinReverse distrib', error);
-    }
-  }
-
-  async setReplaceOutOfOrderDistrib(outOfOrder) {
-    try {
-      this.checkCombine();
-      const {
-        replace,
-      } = this;
-      replace.outOfOrder = outOfOrdere;
-      const ackPromises = this.getAckPromises((socket) => {
-        socket.write(addBufferFlag(1, getBinBuf([10, key])));
-      });
-      await Promise.all(ackPromises);
-      this.outputDistribOperate('setReplaceOutOfOrder distrib');
-    } catch (error) {
-      this.outputDistribOperateError('setReplaceOutOfOrder distrib', error);
     }
   }
 
