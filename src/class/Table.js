@@ -493,6 +493,36 @@ class Table {
       throw new Error('[Error] The parameter callback should be a function type.');
     }
     switch (phrase) {
+      case 'rm>table': {
+        const {
+          constructor: {
+            name,
+          },
+          notice,
+        } = this;
+        if (/Distrib/.test(name)) {
+          notice.attach(phrase, callback);
+          this.checkMemory();
+        } else {
+          throw new Error('[Error] The remove table phrase is limited to DistribTable.');
+        }
+        break;
+      }
+      case 'add>table': {
+        const {
+          constructor: {
+            name,
+          },
+          notice,
+        } = this;
+        if (/Distrib/.test(name)) {
+          notice.attach(phrase, callback);
+          this.checkMemory();
+        } else {
+          throw new Error('[Error] The add table phrase is limited to DistribTable.');
+        }
+        break;
+      }
       case 'disk>rem':
       case 'mem>chk': {
         const { notice, } = this;

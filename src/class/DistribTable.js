@@ -110,6 +110,16 @@ class DistribTable extends Table {
       const clientsPromise = this.setUpClients();
       await Promise.all([serverPromise, clientsPromise]);
       this.setUpSockets(true);
+      const {
+        notice,
+        global,
+      } = this;
+      const callback = notice.gain('add>table');
+      if (typeof callback === 'function') {
+        if (global !== undefined) {
+          callback(global, ip, port);
+        }
+      }
       this.checkMemory();
       this.outputDistribOperate('start');
     } catch (error) {
@@ -123,13 +133,7 @@ class DistribTable extends Table {
         name,
       },
     } = this;
-    switch (name) {
-      case 'DistribTable':
-        this.global = global;
-        break;
-      default:
-        throw new Error('[Error] Only distributed instances can set global object.');
-    }
+    this.global = global;
     this.checkMemory();
   }
 
@@ -948,6 +952,16 @@ class DistribTable extends Table {
       this.checkCombine();
       this.removeTable(table);
       const [ip, port] = table;
+      const {
+        notice,
+        global,
+      } = this;
+      const callback = notice.gain('rm>table');
+      if (typeof callback === 'function') {
+        if (global !== undefined) {
+          callback(global, ip, port);
+        }
+      }
       const ackPromises = this.getAckPromises((socket) => {
         socket.write(addBufferFlag(1, getBinBuf([5, ip, port])));
       });
