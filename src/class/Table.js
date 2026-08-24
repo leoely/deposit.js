@@ -372,14 +372,14 @@ class Table {
       },
     } = this;
     if (keepId === true) {
-      if (process[singleBinedEvent] !== true) {
+      if (process[singleBindedEventKey] !== true) {
         process.on('SIGINT', this.cleanUp);
         process.on('SIGHUP', this.cleanUp);
         process.on('SIGQUIT', this.cleanUp);
         process.on('SIGTERM', this.cleanUp);
         process.on('uncaughtException', this.cleanUp);
         process.on('exit', this.cleanUp);
-        process[singleBindedEvent] = true;
+        process[singleBindedEventKey] = true;
       }
     }
   }
@@ -1870,27 +1870,28 @@ class Table {
       }
       if (highSimple === undefined) {
         await this.attachPositive(highId, { id: lowId, count: 1n, });
+        console.log('++++++++++++++');
         await this.attachReverse(lowId, highId);
         orders.unshift([1n, lowId]);
-        await this.setReplaceOrders(orders);
-        await this.setReplaceOutOfOrder(false);
+        //await this.setReplaceOrders(orders);
+        //await this.setReplaceOutOfOrder(false);
       } else {
-        const id = reverse.gain(highId);
-        const p = positive.gain(id);
-        p.id = lowId;
-        await this.attachReverse(lowId, id);
+        //const id = reverse.gain(highId);
+        //const p = positive.gain(id);
+        //p.id = lowId;
+        //await this.attachReverse(lowId, id);
       }
       if (lowSimple === undefined) {
-        await this.attachPositive(lowId, { id: highId, count: 1n, });
-        await this.attachReverse(highId, lowId);
-        orders.unshift([1n, highId]);
-        await this.setReplaceOrders(orders);
-        await this.setReplaceOutOfOrder(false);
+        //await this.attachPositive(lowId, { id: highId, count: 1n, });
+        //await this.attachReverse(highId, lowId);
+        //orders.unshift([1n, highId]);
+        //await this.setReplaceOrders(orders);
+        //await this.setReplaceOutOfOrder(false);
       } else {
-        const id = reverse.gain(lowId);
-        const p = positive.gain(id);
-        p.id = highId;
-        await this.attachReverse(highId, id);
+        //const id = reverse.gain(lowId);
+        //const p = positive.gain(id);
+        //p.id = highId;
+        //await this.attachReverse(highId, id);
       }
     }
   }

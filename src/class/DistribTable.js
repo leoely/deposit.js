@@ -447,6 +447,7 @@ class DistribTable extends Table {
         break;
       }
       case 1: {
+        console.log(buffer);
         this.dealReceiveBuffer(buffer, socket);
         break;
       }
@@ -1043,9 +1044,9 @@ class DistribTable extends Table {
       const {
         replace,
       } = this;
-      replace.outOfOrder = outOfOrdere;
+      replace.outOfOrder = outOfOrder;
       const ackPromises = this.getAckPromises((socket) => {
-        socket.write(addBufferFlag(1, getBinBuf([10, key])));
+        socket.write(addBufferFlag(1, getBinBuf([10, outOfOrder])));
       });
       await Promise.all(ackPromises);
       this.outputDistribOperate('setReplaceOutOfOrder distrib');
