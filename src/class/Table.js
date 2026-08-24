@@ -361,13 +361,8 @@ class Table {
     this.checkMemory();
   }
 
-  static cleanUpTable = null;
-
   async cleanUp() {
-    const {
-      cleanUpTable,
-    } = Table;
-    await cleanUpTable.emptyReplace();
+    await this.emptyReplace();
   }
 
   bindEvent() {
@@ -377,17 +372,14 @@ class Table {
       },
     } = this;
     if (keepId === true) {
-      const {
-        cleanUpTable,
-      } = Table;
-      if (cleanUpTable === null) {
-        Table.cleanUpTable = this;
+      if (process[singleBinedEvent] !== true) {
         process.on('SIGINT', this.cleanUp);
         process.on('SIGHUP', this.cleanUp);
         process.on('SIGQUIT', this.cleanUp);
         process.on('SIGTERM', this.cleanUp);
         process.on('uncaughtException', this.cleanUp);
         process.on('exit', this.cleanUp);
+        process[singleBindedEvent] = true;
       }
     }
   }
