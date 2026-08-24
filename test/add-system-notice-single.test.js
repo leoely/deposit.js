@@ -17,8 +17,8 @@ beforeAll(() => {
   global.users.tb14 = new DistribUsers(8013, tables);
 });
 
-describe('[Class] Distributed addSystemNotice test cases;', () => {
-  test('Test distributed addSystemNotice operations.', async () => {
+describe('[Class] Singlee addSystemNotice test cases;', () => {
+  test('Test single addSystemNotice operations.', async () => {
     await timersPromises.setTimeout(2800);
     const global_users_tb12 = global.users.tb12;
     const global_users_tb13 = global.users.tb13;
@@ -36,10 +36,10 @@ describe('[Class] Distributed addSystemNotice test cases;', () => {
     });
     await DistribTable.join([global_users_tb14], [global_users_tb12, global_users_tb13], newTables);
     expect(global.address1).toMatch('ifadsfadsfdsa');
-    webDistribRouter3.addSystemNotice('rm>router', (global, ip, port) => {
+    global_users_tb14.addSystemNotice('rm>router', (global, ip, port) => {
       global.address2 = getAddress(ip, port);
     });
-    await webDistribRouter3.close();
+    await global_users_tb14.close();
     expect(global.address2).toMatch('ifadsfadsfdsa');
     await DistribTable.release([global_users_tb12, global_users_tb13]);
   });
