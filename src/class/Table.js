@@ -483,6 +483,12 @@ class Table {
       } = this;
       options.acquireAvailableDelta = false;
     }
+    this.checkMemory();
+  }
+
+  setGlobal() {
+    this.global = global;
+    this.checkMemory();
   }
 
   addSystemNotice(phrase, callback) {
@@ -874,6 +880,7 @@ class Table {
       throw new Error('[Error] Parameter temporaryMemorySwitch should be of boolean type.');
     }
     this.temporaryMemorySwitch = temporaryMemorySwitch;
+    this.checkMemory();
   }
 
   emptyCache() {

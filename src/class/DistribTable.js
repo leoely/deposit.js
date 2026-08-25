@@ -127,16 +127,6 @@ class DistribTable extends Table {
     }
   }
 
-  setGlobal() {
-    const {
-      constructor: {
-        name,
-      },
-    } = this;
-    this.global = global;
-    this.checkMemory();
-  }
-
   static async combine(distribTables) {
     if (!Array.isArray(distribTables)) {
       throw new Error('[Error] The parameter distribTables should be of array type.');
