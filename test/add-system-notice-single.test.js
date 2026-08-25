@@ -12,9 +12,14 @@ beforeAll(() => {
     [ipv4, 8011],
     [ipv4, 8012],
   ];
+  const newTables = [
+    [ipv4, 8011],
+    [ipv4, 8012],
+    [ipv4, 8013],
+  ];
   global.users.tb12 = new DistribUsers(8011, tables);
   global.users.tb13 = new DistribUsers(8012, tables);
-  global.users.tb14 = new DistribUsers(8013, tables);
+  global.users.tb14 = new DistribUsers(8013, newTables);
 });
 
 describe('[Class] Singlee addSystemNotice test cases;', () => {

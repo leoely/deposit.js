@@ -110,6 +110,7 @@ class DistribTable extends Table {
       const clientsPromise = this.setUpClients();
       await Promise.all([serverPromise, clientsPromise]);
       this.setUpSockets(true);
+      const { ip, port, } = this;
       const {
         notice,
         global,
